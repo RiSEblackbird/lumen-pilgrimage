@@ -5,6 +5,7 @@ import { GlyphSystem } from '../world/GlyphSystem';
 
 export interface FPSSelectEvent {
   domain: RitualDomain;
+  intensified: boolean;
   source: 'fps';
 }
 
@@ -18,13 +19,15 @@ export class FPSInputRig {
   private readonly tempMatrix = new Matrix4();
 
   private speedMetersPerSecond = 2.5;
+  private kelvinRollRadians = 0;
   private active = true;
 
   constructor(
     camera: PerspectiveCamera,
     private readonly renderer: WebGLRenderer,
     private readonly glyphSystem: GlyphSystem,
-    private readonly onSelect: (event: FPSSelectEvent) => void
+    private readonly onSelect: (event: FPSSelectEvent) => void,
+    private readonly onRollKelvin: (rollRadians: number) => void
   ) {
     this.controls = new PointerLockControls(camera, renderer.domElement);
 
@@ -36,7 +39,7 @@ export class FPSInputRig {
         this.controls.lock();
         return;
       }
-      this.selectTargetGlyph();
+      this.selectTargetGlyph(this.isIntensifyModifierActive());
     });
 
     window.addEventListener('keydown', (event) => this.onKeyDown(event));
@@ -54,6 +57,15 @@ export class FPSInputRig {
     if (!this.active || !this.controls.isLocked) {
       return;
     }
+
+    const rollDeltaPerSecond = Math.PI * 0.8;
+    if (this.keys.has('keyz')) {
+      this.kelvinRollRadians = Math.max(-Math.PI, this.kelvinRollRadians - rollDeltaPerSecond * deltaSeconds);
+    }
+    if (this.keys.has('keyx')) {
+      this.kelvinRollRadians = Math.min(Math.PI, this.kelvinRollRadians + rollDeltaPerSecond * deltaSeconds);
+    }
+    this.onRollKelvin(this.kelvinRollRadians);
 
     this.moveDirection.set(0, 0, 0);
     if (this.keys.has('keyw')) {
@@ -88,7 +100,7 @@ export class FPSInputRig {
     }
 
     if (key === 'space' || key === 'enter') {
-      this.selectTargetGlyph();
+      this.selectTargetGlyph(this.isIntensifyModifierActive());
     }
   }
 
@@ -96,13 +108,17 @@ export class FPSInputRig {
     this.keys.delete(event.code.toLowerCase());
   }
 
-  private selectTargetGlyph(): void {
+  private selectTargetGlyph(intensified: boolean): void {
     const domain = this.pickCenterDomain();
     if (!domain) {
       return;
     }
 
-    this.onSelect({ domain, source: 'fps' });
+    this.onSelect({ domain, intensified, source: 'fps' });
+  }
+
+  private isIntensifyModifierActive(): boolean {
+    return this.keys.has('shiftleft') || this.keys.has('shiftright');
   }
 
   private pickCenterDomain(): RitualDomain | null {

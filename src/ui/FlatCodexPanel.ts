@@ -20,6 +20,7 @@ export class FlatCodexPanel {
         <li id="mode-line">モード: <b>FPS</b></li>
         <li>VRButton から VR に入場</li>
         <li>FPS: 画面クリックで照準固定、WASD で移動、クリック/Enter/Space で glyph 選択</li>
+        <li>FPS: Shift + 選択で儀式増幅、Z/X で Kelvin を調整</li>
         <li>VR: 右 fire wand / 左 moon wand、レイ + Select で儀式遷移</li>
         <li>両手同時に同じ glyph で儀式増幅</li>
         <li>キーボード <b>V</b> で spirit vision 切替</li>
