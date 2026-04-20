@@ -43,6 +43,8 @@ npm run check
   - 画面クリックで照準を固定（Pointer Lock）
   - `W` `A` `S` `D` で移動
   - クリック / `Enter` / `Space` で中央照準先の glyph を選択
+  - `Shift` を押しながら選択で ritual 増幅
+  - `Z` / `X` で Kelvin 光源を調整
 - `Enter VR` ボタンで VR 開始
 - 右コントローラー: fire wand
 - 左コントローラー: moon wand

@@ -57,8 +57,8 @@ export class LumenPilgrimageApp {
     );
     this.scene.add(this.inputRig.group);
     this.fpsInput = new FPSInputRig(this.camera, this.renderer, this.glyphs, (event) => {
-      this.onSelectGlyph({ domain: event.domain, intensified: false, source: 'right' });
-    });
+      this.onSelectGlyph({ domain: event.domain, intensified: event.intensified, source: 'right' });
+    }, (roll) => this.sanctuary.kelvinRig.adjustByRoll(roll));
 
     this.applyDomain(this.ritual.currentDomain);
     this.syncMode();
