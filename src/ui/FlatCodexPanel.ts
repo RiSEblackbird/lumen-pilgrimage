@@ -17,6 +17,7 @@ export class FlatCodexPanel {
     this.element.innerHTML = `
       <h1 style="margin:0 0 .5rem; font-size: 1rem;">Lumen Pilgrimage / Codex</h1>
       <ul style="margin:0; padding-left:1.1rem; font-size:.9rem;">
+        <li>目的: glyph を選び、5 つのドメインを巡って光景の変化を体験する</li>
         <li id="mode-line">モード: <b>FPS</b></li>
         <li>VRButton から VR に入場</li>
         <li>FPS: 画面クリックで照準固定、WASD で移動、クリック/Enter/Space で glyph 選択</li>
