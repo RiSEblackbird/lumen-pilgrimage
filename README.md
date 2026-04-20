@@ -1,6 +1,6 @@
 # Lumen Pilgrimage
 
-Three.js r184 + TypeScript で構築した WebXR VR 体験です。儀式空間（sanctuary）内で glyph を選択し、`LightProbeGrid` と Kelvin 光源制御を用いてドメインごとの雰囲気を変化させます。
+Three.js r184 + TypeScript で構築した WebXR 体験です。儀式空間（sanctuary）内で glyph を選択し、`LightProbeGrid` と Kelvin 光源制御を用いてドメインごとの雰囲気を変化させます。入力モードは VR と FPS の両方に対応しています。
 
 ## セットアップ
 
@@ -29,6 +29,7 @@ npm run check
 - `renderer.setAnimationLoop()`
 - `local-floor` reference space
 - XR controller ray interaction
+- FPS mode（PointerLock + WASD + crosshair interaction）
 - `LightProbeGrid`（`three/addons/lighting/LightProbeGrid.js`）
 - `ColorUtils.setKelvin()`（`three/addons/utils/ColorUtils.js`）
 - `LightProbeGridHelper` による spirit vision
@@ -38,6 +39,10 @@ npm run check
 ## 操作
 
 - ブラウザ画面: Codex パネルで操作説明を表示
+- 非 VR 時（FPS モード）:
+  - 画面クリックで照準を固定（Pointer Lock）
+  - `W` `A` `S` `D` で移動
+  - クリック / `Enter` / `Space` で中央照準先の glyph を選択
 - `Enter VR` ボタンで VR 開始
 - 右コントローラー: fire wand
 - 左コントローラー: moon wand
@@ -69,6 +74,7 @@ src/
   main.ts
   app/
     LumenPilgrimageApp.ts
+    FPSInputRig.ts
     XRInputRig.ts
     RitualState.ts
   world/
