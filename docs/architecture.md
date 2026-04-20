@@ -2,7 +2,7 @@
 
 ## レイヤー責務
 
-- `app/`: アプリ全体のオーケストレーション、XR 入力統合、状態遷移。
+- `app/`: アプリ全体のオーケストレーション、XR/FPS 入力統合、状態遷移。
 - `world/`: 3D 空間要素、光源、probe、glyph、粒子。
 - `ui/`: 2D/3D の操作ガイド表示。
 - `export/`: 最終 ritual 状態のシリアライズ。
@@ -14,6 +14,7 @@
   - `ProbeVolumeManager`
   - `GlyphSystem`
   - `XRInputRig`
+  - `FPSInputRig`
   - `DreamExporter`
 - `Sanctuary`
   - `KelvinLightRig`
@@ -24,6 +25,9 @@
 - Glyph select 時:
   - 通常は選択された domain へ遷移。
   - 両手同一 glyph + 十分な進行で `dawn-altar` を即時解放。
+- 入力モード:
+  - XR セッション中は VR モード（`XRInputRig`）を使用。
+  - 非 XR セッション中は FPS モード（`FPSInputRig`）を使用。
 - キーボード `V`:
   - `LightProbeGridHelper` 可視化の ON/OFF。
 - キーボード `E`:

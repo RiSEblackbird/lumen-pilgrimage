@@ -4,6 +4,7 @@ export interface ExportState {
   readonly domain: RitualDomain;
   readonly kelvin: number;
   readonly spiritVision: boolean;
+  readonly inputMode: 'vr' | 'fps';
   readonly timestamp: string;
 }
 

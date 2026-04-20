@@ -8,6 +8,7 @@ import { GlyphSystem } from '../world/GlyphSystem';
 import { ProbeVolumeManager } from '../world/ProbeVolumeManager';
 import { XRInputRig, XRSelectEvent } from './XRInputRig';
 import { DreamExporter } from '../export/DreamExporter';
+import { FPSInputRig } from './FPSInputRig';
 
 export class LumenPilgrimageApp {
   private readonly renderer: WebGLRenderer;
@@ -20,10 +21,14 @@ export class LumenPilgrimageApp {
   private readonly glyphs = new GlyphSystem();
   private readonly probeVolumes: ProbeVolumeManager;
   private readonly inputRig: XRInputRig;
+  private readonly fpsInput: FPSInputRig;
+  private readonly flatCodex: FlatCodexPanel;
   private readonly vrCodex = new VrCodexPanel();
   private readonly exporter = new DreamExporter();
 
   private spiritVision = false;
+  private activeMode: 'vr' | 'fps' = 'fps';
+  private elapsedSeconds = 0;
 
   constructor(container: HTMLElement) {
     this.scene.background = new Color(0x05060d);
@@ -38,7 +43,7 @@ export class LumenPilgrimageApp {
 
     container.appendChild(this.renderer.domElement);
     container.appendChild(VRButton.createButton(this.renderer));
-    new FlatCodexPanel(container);
+    this.flatCodex = new FlatCodexPanel(container);
 
     this.sanctuary = new Sanctuary(this.scene);
     this.scene.add(this.glyphs.group, this.vrCodex.group);
@@ -51,12 +56,18 @@ export class LumenPilgrimageApp {
       (roll) => this.sanctuary.kelvinRig.adjustByRoll(roll)
     );
     this.scene.add(this.inputRig.group);
+    this.fpsInput = new FPSInputRig(this.camera, this.renderer, this.glyphs, (event) => {
+      this.onSelectGlyph({ domain: event.domain, intensified: false, source: 'right' });
+    });
 
     this.applyDomain(this.ritual.currentDomain);
+    this.syncMode();
 
     this.renderer.setAnimationLoop(() => this.update());
     window.addEventListener('resize', () => this.onResize());
     window.addEventListener('keydown', (event) => this.onKeyDown(event));
+    this.renderer.xr.addEventListener('sessionstart', () => this.syncMode());
+    this.renderer.xr.addEventListener('sessionend', () => this.syncMode());
   }
 
   private onSelectGlyph(event: XRSelectEvent): void {
@@ -88,6 +99,7 @@ export class LumenPilgrimageApp {
         domain: this.ritual.currentDomain,
         kelvin: this.sanctuary.kelvinRig.currentKelvin,
         spiritVision: this.spiritVision,
+        inputMode: this.activeMode,
         timestamp: new Date().toISOString()
       });
       console.info('[DreamExporter]', data);
@@ -101,9 +113,18 @@ export class LumenPilgrimageApp {
   }
 
   private update(): void {
-    const elapsed = this.clock.getElapsedTime();
+    const delta = this.clock.getDelta();
+    this.elapsedSeconds += delta;
     this.inputRig.update();
-    this.sanctuary.tick(elapsed);
+    this.fpsInput.update(delta);
+    this.sanctuary.tick(this.elapsedSeconds);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  private syncMode(): void {
+    const nextMode = this.renderer.xr.isPresenting ? 'vr' : 'fps';
+    this.activeMode = nextMode;
+    this.flatCodex.setMode(nextMode);
+    this.fpsInput.setActive(nextMode === 'fps');
   }
 }
