@@ -15,6 +15,12 @@ npm run dev
 npm run build
 ```
 
+CI と同等の検証をローカルで実行する場合:
+
+```bash
+npm run check
+```
+
 ## 実装済みの主要要件
 
 - TypeScript 実装
