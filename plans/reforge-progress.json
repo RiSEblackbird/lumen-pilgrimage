@@ -11,15 +11,16 @@
     "phase4-continue-resume-boss-stub",
     "phase4-continue-hardening",
     "phase4-hub-meta-progression",
-    "phase4-boss-contracts"
+    "phase4-boss-contracts",
+    "phase4-biome-content-expansion"
   ],
   "in_progress": [
     "phase4-hub-biome-boss-foundation"
   ],
   "next_actions": [
-    "expand biome enemy families beyond Ember/Moon spawn tables",
     "wire loadout availability to dedicated expedition prep screen (not only hub/hud text)",
-    "add boss arena mutation hooks that alter room hazards per contract phase"
+    "add boss arena mutation hooks that alter room hazards per contract phase",
+    "implement dedicated boss actors beyond wave-contract placeholder behavior"
   ],
   "smoke_commands": [
     "npm run typecheck",
@@ -27,7 +28,7 @@
     "npm run dev"
   ],
   "risks": [
-    "boss implementation is wave-contract driven; dedicated boss actor/arena mutation is still missing",
-    "encounter data currently covers only Ember Ossuary and Moon Reservoir"
+    "boss implementation is still wave-contract driven; dedicated boss actor and encounter scripting remain missing",
+    "new biome content is data-level and needs authored room geometry, hazards, and mission scripting to reach production quality"
   ]
 }
