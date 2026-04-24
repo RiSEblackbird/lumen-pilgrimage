@@ -2,6 +2,12 @@ import type { ActionState } from '../../engine/input/ActionMap';
 import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
 import { RewardDirector, type RewardChoiceState } from '../director/RewardDirector';
+import {
+  getBossContractForBiome,
+  resolveBossPhase,
+  type BossContract,
+  type BossPhaseRule
+} from '../encounters/BossContracts';
 import { buildEncounterWave } from '../encounters/EncounterSpawnTables';
 import type { RouteStyle } from '../encounters/EncounterRuleSet';
 import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
@@ -105,6 +111,9 @@ export class CombatSandboxDirector {
   private roomDamageTaken = 0;
   private previousActions: ActionState;
   private bossPhase = 0;
+  private bossContract: BossContract | null = null;
+  private bossPhaseRule: BossPhaseRule | null = null;
+  private bossPhaseElapsed = 0;
   private bossLabel = 'No Warden contact';
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
 
@@ -157,6 +166,9 @@ export class CombatSandboxDirector {
     this.elapsedSeconds = 0;
     this.roomDamageTaken = 0;
     this.bossPhase = 0;
+    this.bossContract = null;
+    this.bossPhaseRule = null;
+    this.bossPhaseElapsed = 0;
     this.bossLabel = 'No Warden contact';
     this.rewards.setEquippedRelics([]);
     this.previousActions = {
@@ -183,6 +195,7 @@ export class CombatSandboxDirector {
     this.resolveResources(deltaSeconds);
     this.resolveRewardInput(actions);
     this.resolvePlayerActions(actions);
+    this.updateBossState(deltaSeconds);
     this.resolveEnemyPressure(deltaSeconds, actions);
     this.previousActions = actions;
 
@@ -410,11 +423,17 @@ export class CombatSandboxDirector {
       if (actions.guard) {
         const relicModifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
         const offhandWindowMultiplier = this.offhandGuardBoostTimer > 0 ? 0.82 : 1;
-        this.guard = Math.max(0, this.guard - enemy.damage * 0.65 * relicModifiers.guardDamageTakenMultiplier * offhandWindowMultiplier);
+        const guardDamageMultiplier = this.bossPhaseRule?.guardDamageMultiplier ?? 1;
+        this.guard = Math.max(
+          0,
+          this.guard - enemy.damage * 0.65 * relicModifiers.guardDamageTakenMultiplier * offhandWindowMultiplier * guardDamageMultiplier
+        );
         this.overburn = Math.min(MAX_OVERBURN, this.overburn + 5);
       } else {
-        this.health = Math.max(0, this.health - enemy.damage);
-        this.roomDamageTaken += enemy.damage;
+        const incomingDamageMultiplier = this.bossPhaseRule?.incomingDamageMultiplier ?? 1;
+        const adjustedDamage = enemy.damage * incomingDamageMultiplier;
+        this.health = Math.max(0, this.health - adjustedDamage);
+        this.roomDamageTaken += adjustedDamage;
       }
       enemy.attackTimer = enemy.attackInterval;
     }
@@ -490,18 +509,20 @@ export class CombatSandboxDirector {
     });
 
     for (const template of waveTemplates) {
+      const attackIntervalMultiplier = this.bossPhaseRule?.attackIntervalMultiplier ?? 1;
+      const telegraphLeadMultiplier = this.bossPhaseRule?.telegraphLeadMultiplier ?? 1;
       this.enemies.push(
         this.createEnemy(
           template.archetypeId,
           template.label,
           template.baseHealth,
           template.baseDamage,
-          template.attackInterval,
+          template.attackInterval * attackIntervalMultiplier,
           {
             meleeWeight: template.meleeWeight,
             rangedWeight: template.rangedWeight
           },
-          template.telegraphLead
+          template.telegraphLead * telegraphLeadMultiplier
         )
       );
     }
@@ -509,16 +530,46 @@ export class CombatSandboxDirector {
 
   private updateBossReadout(roomTags: readonly string[]): void {
     if (!roomTags.includes('boss-approach')) {
+      this.bossContract = null;
+      this.bossPhaseRule = null;
+      this.bossPhaseElapsed = 0;
       this.bossLabel = 'No Warden contact';
       this.bossPhase = 0;
       return;
     }
 
-    const isMoon = this.latestEncounter.biomeId === 'moon-reservoir';
-    const bossName = isMoon ? 'The Thirteen-Eyed Pool' : 'Bell of Cinders';
-    this.bossPhase = Math.min(3, this.bossPhase + 1);
-    this.bossLabel = `${bossName} (stub) / Phase ${this.bossPhase}/3`;
-    this.objective = `${bossName} への前哨戦。phase telegraph の読み合い準備。`;
+    this.bossContract = this.resolveBossContract(this.latestEncounter.biomeId);
+    this.bossPhaseElapsed = 0;
+    this.bossPhaseRule = this.bossContract ? resolveBossPhase(this.bossContract, this.bossPhaseElapsed, this.overburn) : null;
+    this.bossPhase = this.bossPhaseRule?.index ?? 1;
+    if (!this.bossContract || !this.bossPhaseRule) {
+      this.bossLabel = 'Unknown Warden signature';
+      this.objective = 'Warden trace detected. Continue pressure to extract phase data.';
+      return;
+    }
+    this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${this.bossPhase}/${this.bossContract.phases.length} (${this.bossPhaseRule.title})`;
+    this.objective = `${this.bossContract.bossName} 接触。${this.bossPhaseRule.mechanicSummary}`;
+  }
+
+  private updateBossState(deltaSeconds: number): void {
+    if (!this.bossContract) {
+      return;
+    }
+
+    this.bossPhaseElapsed += deltaSeconds;
+    const resolvedPhase = resolveBossPhase(this.bossContract, this.bossPhaseElapsed, this.overburn);
+    const phaseChanged = this.bossPhaseRule?.index !== resolvedPhase.index;
+    this.bossPhaseRule = resolvedPhase;
+    this.bossPhase = resolvedPhase.index;
+    this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${resolvedPhase.index}/${this.bossContract.phases.length} (${resolvedPhase.title})`;
+    if (phaseChanged) {
+      this.objective = `${this.bossContract.bossName} phase shift: ${resolvedPhase.mechanicSummary}`;
+      this.spawnWave();
+    }
+  }
+
+  private resolveBossContract(biomeId: string): BossContract | null {
+    return getBossContractForBiome(biomeId);
   }
 
   private tryParry(): void {
