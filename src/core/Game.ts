@@ -5,11 +5,11 @@ import { GameLoop } from './GameLoop';
 import { DesktopActionAdapter } from '../engine/input/DesktopActionAdapter';
 import { XRActionAdapter } from '../engine/input/XRActionAdapter';
 import { SettingsStore } from '../engine/save/SettingsStore';
-import { SaveManager } from '../engine/save/SaveManager';
+import { DEFAULT_META_PROGRESS, SaveManager, type MetaProgress } from '../engine/save/SaveManager';
 import { PerfHud } from '../engine/debug/PerfHud';
 import { GameStateMachine } from '../game/state/GameStateMachine';
 import { HudManager } from '../game/ui/HudManager';
-import { MenuManager, type ContinueSnapshot, type MenuCommand, type SettingsViewModel } from '../game/ui/MenuManager';
+import { MenuManager, type ContinueSnapshot, type HubViewModel, type MenuCommand, type SettingsViewModel } from '../game/ui/MenuManager';
 import { VrWristUi } from '../game/ui/VrWristUi';
 import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
@@ -36,6 +36,7 @@ export class Game {
   private fpsFrameCount = 0;
   private saveAccumulator = 0;
   private continueSnapshot: ContinueSnapshot | null = null;
+  private hubViewModel: HubViewModel;
   private runActive = false;
 
   constructor(container: HTMLElement) {
@@ -59,12 +60,16 @@ export class Game {
     const slot = this.saves.loadOrCreate(0, {
       state: 'Hub',
       unlockedBiomes: ['Ember Ossuary'],
-      expedition: null
+      expedition: null,
+      metaProgress: DEFAULT_META_PROGRESS
     });
     this.continueSnapshot = slot.expedition;
+    this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
+
     this.combatSandbox = new CombatSandboxDirector(this.continueSnapshot);
     this.menu.setContinueSnapshot(this.continueSnapshot);
     this.menu.setSettings(this.settingsViewModel);
+    this.menu.setHub(this.hubViewModel);
 
     container.appendChild(this.renderer.domElement);
     container.appendChild(VRButton.createButton(this.renderer));
@@ -95,7 +100,7 @@ export class Game {
           guard: 100,
           focus: 100,
           overburn: 0,
-          objective: 'Main Menu: Continue または New Game を選択',
+          objective: 'Main Menu/HUB で導線を選択',
           weaponName: '-',
           offhandName: '-',
           sigilName: '-',
@@ -149,7 +154,9 @@ export class Game {
         });
         if (updated) {
           this.continueSnapshot = updated.expedition;
+          this.hubViewModel = this.toHubViewModel(updated.unlockedBiomes, updated.metaProgress);
           this.menu.setContinueSnapshot(this.continueSnapshot);
+          this.menu.setHub(this.hubViewModel);
         }
       }
     });
@@ -171,10 +178,40 @@ export class Game {
       return;
     }
 
+    if (command === 'launch-expedition') {
+      this.startExpeditionFromHub();
+      return;
+    }
+
     this.handleMetaMenu(command);
   }
 
-  private handleMetaMenu(command: Exclude<MenuCommand, 'continue' | 'new-game'>): void {
+  private handleMetaMenu(command: Exclude<MenuCommand, 'continue' | 'new-game' | 'launch-expedition'>): void {
+    if (command === 'enter-hub' && this.states.canTransition('Hub')) {
+      this.states.transition('Hub');
+      return;
+    }
+
+    if (command === 'open-meta-upgrade' && this.states.current === 'Hub' && this.states.canTransition('MetaUpgrade')) {
+      this.states.transition('MetaUpgrade');
+      return;
+    }
+
+    if (command === 'unlock-astral-pike') {
+      this.tryUnlockAstralPike();
+      return;
+    }
+
+    if (command === 'craft-beacon-crucible') {
+      this.tryCraftBeaconCrucible();
+      return;
+    }
+
+    if (command === 'back-hub' && this.states.canTransition('Hub')) {
+      this.states.transition('Hub');
+      return;
+    }
+
     if (command === 'open-credits' && this.states.canTransition('Credits')) {
       this.states.transition('Credits');
       return;
@@ -238,16 +275,82 @@ export class Game {
     this.enterRunStates();
   }
 
+  private startExpeditionFromHub(): void {
+    this.combatSandbox.resetForRun(this.continueSnapshot);
+    this.runActive = true;
+    if (this.states.current === 'Hub' && this.states.canTransition('ExpeditionPrep')) {
+      this.states.transition('ExpeditionPrep');
+    }
+    if (this.states.current === 'ExpeditionPrep' && this.states.canTransition('InExpedition')) {
+      this.states.transition('InExpedition');
+    }
+  }
+
   private startNewGame(): void {
     const slot = this.saves.resetSlot(0, {
       state: 'Hub',
       unlockedBiomes: ['Ember Ossuary'],
-      expedition: null
+      expedition: null,
+      metaProgress: DEFAULT_META_PROGRESS
     });
     this.continueSnapshot = slot.expedition;
+    this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
     this.menu.setContinueSnapshot(this.continueSnapshot);
+    this.menu.setHub(this.hubViewModel);
     this.combatSandbox.resetForRun(null);
-    this.enterRunStates();
+    this.runActive = false;
+    if (this.states.canTransition('Hub')) {
+      this.states.transition('Hub');
+    }
+  }
+
+  private tryUnlockAstralPike(): void {
+    const updated = this.saves.updateMetaProgress(0, (meta) => {
+      if (meta.unlockedWeapons.includes('astral-pike') || meta.lumenAsh < 80) {
+        return meta;
+      }
+      return {
+        ...meta,
+        lumenAsh: meta.lumenAsh - 80,
+        unlockedWeapons: [...meta.unlockedWeapons, 'astral-pike']
+      };
+    });
+    this.applyUpdatedSlot(updated);
+  }
+
+  private tryCraftBeaconCrucible(): void {
+    const updated = this.saves.updateMetaProgress(0, (meta) => {
+      if (meta.unlockedOffhands.includes('beacon-crucible') || meta.choirThread < 20) {
+        return meta;
+      }
+      return {
+        ...meta,
+        choirThread: meta.choirThread - 20,
+        unlockedOffhands: [...meta.unlockedOffhands, 'beacon-crucible']
+      };
+    });
+    this.applyUpdatedSlot(updated);
+  }
+
+  private applyUpdatedSlot(slot: { unlockedBiomes: readonly string[]; metaProgress: MetaProgress } | null): void {
+    if (!slot) {
+      return;
+    }
+    this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
+    this.menu.setHub(this.hubViewModel);
+  }
+
+  private toHubViewModel(unlockedBiomes: readonly string[], meta: MetaProgress): HubViewModel {
+    return {
+      unlockedBiomes,
+      lumenAsh: Math.max(0, Math.floor(meta.lumenAsh)),
+      choirThread: Math.max(0, Math.floor(meta.choirThread)),
+      saintGlass: Math.max(0, Math.floor(meta.saintGlass)),
+      echoScript: Math.max(0, Math.floor(meta.echoScript)),
+      unlockedWeapons: meta.unlockedWeapons,
+      unlockedOffhands: meta.unlockedOffhands,
+      unlockedSigils: meta.unlockedSigils
+    };
   }
 
   private enterRunStates(): void {
