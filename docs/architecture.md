@@ -1,4 +1,4 @@
-# Architecture: Lumen Pilgrimage Reforge (Phase 1)
+# Architecture: Lumen Pilgrimage Reforge (Phase 2 / slice1)
 
 ## レイヤー責務
 
@@ -8,6 +8,8 @@
 - `engine/save`: セーブデータと設定保存。
 - `engine/debug`: Perf HUD。
 - `game/state`: game state machine。
+- `game/items`: 武器/副手段のデータ定義。
+- `game/sandbox`: 戦闘サンドボックス進行。
 - `game/ui`: HUD / menu / VR wrist UI。
 - `world/hub`: Hub の最小 3D シーン。
 
@@ -26,20 +28,25 @@
   - `HudManager`
   - `MenuManager`
   - `VrWristUi`
+  - `CombatSandboxDirector`
   - `PilgrimsBelfryScene`
+- `CombatSandboxDirector`
+  - `WeaponDefs`
+  - `OffhandDefs`
 
 ## 分岐条件
 
-- XR セッション中は `XRActionAdapter.isPresenting()` により目標 FPS と objective 表示を切替。
-- 非 XR 時は Desktop 入力スナップショットで interact 状態を objective 文言へ反映。
+- XR セッション中は `XRActionAdapter.isPresenting()` により目標 FPS と objective 文言を切替。
+- 非 XR 時は Desktop 入力スナップショットを `CombatSandboxDirector` に渡し、攻撃/ダッシュ/副手段を処理。
+- `CombatSandboxDirector` は rising edge を使い、押下継続で多重発火しない。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 
 ## 拡張ポイント
 
-- `GameStateMachine` に Phase 2 以降の戦闘/モード遷移を追加。
-- `ActionMap` に combat / traversal のアクションを追加し、Desktop/XR を等価拡張。
+- `WeaponDefs` / `OffhandDefs` に archetype を追加して戦術幅を段階拡張。
+- `CombatSandboxDirector` を `PlayerCombat` / `DamageSystem` / `GuardSystem` に分割し、本番戦闘へ移行。
+- `ActionMap` に parry, sigil, swap 等のアクションを追加し Desktop/XR を等価拡張。
 - `PilgrimsBelfryScene` を Hub 機能（craft, codex, mode select）へ分解。
-- `SaveManager` の slot schema を campaign/meta progression 対応へ拡張。
 
 ## 旧構成の扱い
 
