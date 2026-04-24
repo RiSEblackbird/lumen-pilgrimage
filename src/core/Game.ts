@@ -117,7 +117,8 @@ export class Game {
           equippedRelics: [],
           encounterLabel: 'Awaiting expedition launch',
           contractLabel: 'No contract',
-          bossLabel: 'No Warden contact'
+          bossLabel: 'No Warden contact',
+          loadoutPoolLabel: `Loadout Pool W ${this.hubViewModel.unlockedWeapons.length}/4 | O ${this.hubViewModel.unlockedOffhands.length}/4 | S ${this.hubViewModel.unlockedSigils.length}/12`
         });
         this.menu.setState(this.states.current);
         return;

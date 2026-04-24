@@ -1,5 +1,8 @@
 import type { GameState } from '../state/GameState';
 import type { RelicStatModifiers } from '../items/RelicEffects';
+import { WEAPON_DEFS } from '../items/WeaponDefs';
+import { OFFHAND_DEFS } from '../items/OffhandDefs';
+import { SIGIL_DEFS } from '../items/SigilDefs';
 
 export interface ContinueSnapshot {
   readonly biomeId: string;
@@ -221,9 +224,9 @@ export class MenuManager {
       panel.append(this.createInfoLabel(`Biomes: ${hub.unlockedBiomes.join(', ')}`));
       panel.append(this.createInfoLabel(`Lumen Ash ${hub.lumenAsh} | Choir Thread ${hub.choirThread}`));
       panel.append(this.createInfoLabel(`Saint Glass ${hub.saintGlass} | Echo Script ${hub.echoScript}`));
-      panel.append(this.createInfoLabel(`Weapons: ${hub.unlockedWeapons.join(', ')}`));
-      panel.append(this.createInfoLabel(`Offhands: ${hub.unlockedOffhands.join(', ')}`));
-      panel.append(this.createInfoLabel(`Sigils: ${hub.unlockedSigils.join(', ')}`));
+      panel.append(this.createInfoLabel(this.buildUnlockSummaryLabel('Weapons', hub.unlockedWeapons, WEAPON_DEFS)));
+      panel.append(this.createInfoLabel(this.buildUnlockSummaryLabel('Offhands', hub.unlockedOffhands, OFFHAND_DEFS)));
+      panel.append(this.createInfoLabel(this.buildUnlockSummaryLabel('Sigils', hub.unlockedSigils, SIGIL_DEFS)));
     } else {
       panel.append(this.createInfoLabel('Hub progression unavailable'));
     }
@@ -336,6 +339,18 @@ export class MenuManager {
     label.style.fontSize = '12px';
     label.style.opacity = '0.85';
     return label;
+  }
+
+  private buildUnlockSummaryLabel<T extends { readonly id: string; readonly displayName: string }>(
+    title: string,
+    unlockedIds: readonly string[],
+    defs: readonly T[]
+  ): string {
+    const unlockedNames = defs.filter((def) => unlockedIds.includes(def.id)).map((def) => def.displayName);
+    const lockedNames = defs.filter((def) => !unlockedIds.includes(def.id)).map((def) => def.displayName);
+    const unlockedLabel = unlockedNames.length > 0 ? unlockedNames.join(', ') : 'none';
+    const lockedLabel = lockedNames.length > 0 ? lockedNames.join(', ') : 'none';
+    return `${title} ${unlockedNames.length}/${defs.length} | Unlocked: ${unlockedLabel} | Locked: ${lockedLabel}`;
   }
 
   private createCommandButton(label: string, command: MenuCommand): HTMLButtonElement {
