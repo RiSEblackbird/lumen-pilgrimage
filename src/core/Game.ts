@@ -11,6 +11,7 @@ import { GameStateMachine } from '../game/state/GameStateMachine';
 import { HudManager } from '../game/ui/HudManager';
 import { MenuManager } from '../game/ui/MenuManager';
 import { VrWristUi } from '../game/ui/VrWristUi';
+import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
 
 export class Game {
@@ -28,6 +29,7 @@ export class Game {
   private readonly hud: HudManager;
   private readonly vrUi = new VrWristUi();
   private readonly hubScene: PilgrimsBelfryScene;
+  private readonly combatSandbox = new CombatSandboxDirector();
 
   private fpsAccumulator = 0;
   private fpsFrameCount = 0;
@@ -78,14 +80,17 @@ export class Game {
       this.hubScene.tick(elapsed);
       this.renderer.render(this.scene, this.camera);
       this.updateDebug(delta);
-      const actions = this.desktopInput.snapshot();
-      const objective = this.xrInput.isPresenting()
-        ? `VR Wrist: ${this.vrUi.getStatus()}`
-        : actions.interact
-          ? 'Interact with Belfry console'
-          : 'Choose contract from Pilgrim’s Belfry';
 
-      this.hud.render({ health: 100, guard: 60, focus: 75, overburn: (elapsed * 10) % 100, objective });
+      const actions = this.desktopInput.snapshot();
+      const sandbox = this.combatSandbox.update(actions, delta);
+      const objective = this.xrInput.isPresenting()
+        ? `${sandbox.objective} / VR Wrist: ${this.vrUi.getStatus()}`
+        : sandbox.objective;
+
+      this.hud.render({
+        ...sandbox,
+        objective
+      });
       this.menu.setState(this.states.current);
     });
   }
