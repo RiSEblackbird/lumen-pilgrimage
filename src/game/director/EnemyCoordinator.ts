@@ -4,7 +4,7 @@ export interface EnemyPressureProfile {
 }
 
 export interface CoordinatedEnemyState extends EnemyPressureProfile {
-  readonly id: string;
+  readonly key: string;
   readonly label: string;
   readonly isStaggered: boolean;
   readonly isTelegraphActive: boolean;
@@ -17,10 +17,11 @@ export interface EnemyCoordinatorConfig {
 }
 
 export interface EnemyCoordinatorResult {
-  readonly allowedEnemyIds: ReadonlySet<string>;
-  readonly blockedEnemyIds: ReadonlySet<string>;
+  readonly allowedEnemyKeys: ReadonlySet<string>;
+  readonly blockedEnemyKeys: ReadonlySet<string>;
   readonly meleeLoad: number;
   readonly rangedLoad: number;
+  readonly config: EnemyCoordinatorConfig;
 }
 
 const DEFAULT_CONFIG: EnemyCoordinatorConfig = {
@@ -51,7 +52,7 @@ export class EnemyCoordinator {
         return rightTotalPressure - leftTotalPressure;
       });
 
-    const allowedEnemyIds = new Set<string>();
+    const allowedEnemyKeys = new Set<string>();
     let meleeLoad = 0;
     let rangedLoad = 0;
 
@@ -65,20 +66,21 @@ export class EnemyCoordinator {
         continue;
       }
 
-      allowedEnemyIds.add(enemy.id);
+      allowedEnemyKeys.add(enemy.key);
       meleeLoad = nextMeleeLoad;
       rangedLoad = nextRangedLoad;
     }
 
-    const blockedEnemyIds = new Set(
-      candidates.filter((enemy) => !allowedEnemyIds.has(enemy.id)).map((enemy) => enemy.id)
+    const blockedEnemyKeys = new Set(
+      candidates.filter((enemy) => !allowedEnemyKeys.has(enemy.key)).map((enemy) => enemy.key)
     );
 
     return {
-      allowedEnemyIds,
-      blockedEnemyIds,
+      allowedEnemyKeys,
+      blockedEnemyKeys,
       meleeLoad,
-      rangedLoad
+      rangedLoad,
+      config: this.config
     };
   }
 }

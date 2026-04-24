@@ -5,7 +5,8 @@ import { OFFHAND_DEFS } from '../items/OffhandDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 
 interface SandboxEnemy {
-  readonly id: string;
+  readonly key: string;
+  readonly archetypeId: string;
   readonly label: string;
   health: number;
   readonly damage: number;
@@ -45,6 +46,7 @@ export class CombatSandboxDirector {
   ];
 
   private readonly coordinator = new EnemyCoordinator();
+  private enemySerial = 0;
   private health = MAX_HEALTH;
   private guard = MAX_GUARD;
   private focus = MAX_FOCUS;
@@ -177,7 +179,7 @@ export class CombatSandboxDirector {
   private resolveEnemyPressure(deltaSeconds: number, actions: ActionState): void {
     const coordinatorResult = this.coordinator.evaluate(
       this.enemies.map((enemy) => ({
-        id: enemy.id,
+        key: enemy.key,
         label: enemy.label,
         meleeWeight: enemy.meleeWeight,
         rangedWeight: enemy.rangedWeight,
@@ -187,7 +189,7 @@ export class CombatSandboxDirector {
       }))
     );
 
-    this.pressureLabel = `Melee ${coordinatorResult.meleeLoad.toFixed(1)}/${2.0} | Ranged ${coordinatorResult.rangedLoad.toFixed(1)}/${1.25}`;
+    this.pressureLabel = `Melee ${coordinatorResult.meleeLoad.toFixed(1)}/${coordinatorResult.config.meleeTokenLimit.toFixed(1)} | Ranged ${coordinatorResult.rangedLoad.toFixed(1)}/${coordinatorResult.config.rangedPressureBudget.toFixed(2)}`;
 
     for (const enemy of this.enemies) {
       if (enemy.staggerTimer > 0) {
@@ -202,7 +204,7 @@ export class CombatSandboxDirector {
         continue;
       }
 
-      const canAttackNow = coordinatorResult.allowedEnemyIds.has(enemy.id);
+      const canAttackNow = coordinatorResult.allowedEnemyKeys.has(enemy.key);
       if (!canAttackNow) {
         enemy.attackTimer = Math.min(enemy.attackInterval * 0.4, enemy.telegraphLead);
         continue;
@@ -234,7 +236,7 @@ export class CombatSandboxDirector {
   }
 
   private createEnemy(
-    id: string,
+    archetypeId: string,
     label: string,
     health: number,
     damage: number,
@@ -243,7 +245,8 @@ export class CombatSandboxDirector {
     telegraphLead = 0.55
   ): SandboxEnemy {
     return {
-      id,
+      key: `${archetypeId}-${this.enemySerial++}`,
+      archetypeId,
       label,
       health,
       damage,

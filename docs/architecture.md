@@ -1,4 +1,4 @@
-# Architecture: Lumen Pilgrimage Reforge (Phase 3 / slice1)
+# Architecture: Lumen Pilgrimage Reforge (Phase 3)
 
 ## レイヤー責務
 

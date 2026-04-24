@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 3 の第1スライスとして、Hub の戦闘サンドボックスで guard/parry/telegraph に加え enemy coordinator による圧制御と mission variety を確認できる状態です。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 3 の基盤段階として、Hub の戦闘サンドボックスで guard/parry/telegraph に加え enemy coordinator による圧制御と mission variety を確認できる状態です。
 
 ## セットアップ
 
@@ -17,7 +17,7 @@ npm run build
 npm run check
 ```
 
-## 現在の実装範囲（Phase 1 + Phase 2 slice2 + Phase 3 slice1）
+## 現在の実装範囲（Phase 1〜Phase 3 基盤）
 
 - 新エントリ: `AppBootstrap` → `Game`
 - state machine（Boot〜EndlessCollapse）
