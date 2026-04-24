@@ -1,16 +1,19 @@
 import type { GameState } from '../state/GameState';
+import type { RelicStatModifiers } from '../items/RelicEffects';
 
 export interface ContinueSnapshot {
   readonly biomeId: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
   readonly roomLabel: string;
+  readonly routeStyle: string;
   readonly missionName: string;
   readonly health: number;
   readonly guard: number;
   readonly focus: number;
   readonly overburn: number;
   readonly relicIds: readonly string[];
+  readonly relicModifiers: RelicStatModifiers;
   readonly capturedAtIso: string;
 }
 
@@ -57,10 +60,11 @@ export class MenuManager {
     this.root.innerHTML = [
       `State: ${this.state}`,
       `Continue: ${snapshot.biomeId} / Sector ${snapshot.sectorIndex}/${snapshot.sectorsTotal}`,
-      `Room: ${snapshot.roomLabel}`,
+      `Room: ${snapshot.roomLabel} / Route ${snapshot.routeStyle}`,
       `Mission: ${snapshot.missionName}`,
       `Vitals: HP ${snapshot.health.toFixed(0)} | Guard ${snapshot.guard.toFixed(0)} | Focus ${snapshot.focus.toFixed(0)} | Overburn ${snapshot.overburn.toFixed(0)}`,
       `Relics: ${relicSummary}`,
+      `RelicMods: DMG x${snapshot.relicModifiers.primaryDamageMultiplier.toFixed(2)} | GuardTaken x${snapshot.relicModifiers.guardDamageTakenMultiplier.toFixed(2)} | DashCost x${snapshot.relicModifiers.dashFocusCostMultiplier.toFixed(2)}`,
       `Saved: ${capturedLabel}`
     ].join('<br/>');
   }

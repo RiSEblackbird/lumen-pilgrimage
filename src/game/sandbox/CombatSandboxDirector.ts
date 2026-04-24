@@ -3,9 +3,10 @@ import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
 import { RewardDirector, type RewardChoiceState } from '../director/RewardDirector';
 import { buildEncounterWave } from '../encounters/EncounterSpawnTables';
+import type { RouteStyle } from '../encounters/EncounterRuleSet';
 import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
 import { OFFHAND_DEFS } from '../items/OffhandDefs';
-import { buildRelicStatModifiers } from '../items/RelicEffects';
+import { DEFAULT_RELIC_MODIFIERS, buildRelicStatModifiers, type RelicStatModifiers } from '../items/RelicEffects';
 import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 
@@ -14,12 +15,14 @@ export interface CombatPersistenceSnapshot {
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
   readonly roomLabel: string;
+  readonly routeStyle: RouteStyle;
   readonly missionName: string;
   readonly health: number;
   readonly guard: number;
   readonly focus: number;
   readonly overburn: number;
   readonly relicIds: readonly string[];
+  readonly relicModifiers: RelicStatModifiers;
 }
 
 interface SandboxEnemy {
@@ -52,6 +55,7 @@ export interface CombatSandboxSnapshot {
   readonly rewardLabel: string;
   readonly equippedRelics: readonly string[];
   readonly encounterLabel: string;
+  readonly contractLabel: string;
 }
 
 const MAX_HEALTH = 100;
@@ -102,7 +106,7 @@ export class CombatSandboxDirector {
       openMenu: false
     };
 
-    this.encounter.startExpedition('ember-ossuary');
+    this.encounter.startExpedition('ember-ossuary', MISSION_TYPE_DEFS[this.missionIndex].routeBias);
     this.latestEncounter = this.encounter.snapshot();
     this.encounterLabel = this.latestEncounter.progressLabel;
     this.spawnWave();
@@ -132,7 +136,8 @@ export class CombatSandboxDirector {
       pressureLabel: this.pressureLabel,
       rewardLabel: this.rewardLabel,
       equippedRelics: this.rewards.getEquippedRelics(),
-      encounterLabel: this.encounterLabel
+      encounterLabel: this.encounterLabel,
+      contractLabel: this.getContractLabel()
     };
   }
 
@@ -271,6 +276,7 @@ export class CombatSandboxDirector {
     this.offhandIndex = (this.offhandIndex + 1) % OFFHAND_DEFS.length;
     this.sigilIndex = (this.sigilIndex + 1) % SIGIL_DEFS.length;
     this.missionIndex = (this.missionIndex + 1) % MISSION_TYPE_DEFS.length;
+    this.encounter.setMissionRouteBias(MISSION_TYPE_DEFS[this.missionIndex].routeBias);
     this.objective = `${MISSION_TYPE_DEFS[this.missionIndex].targetObjective} / Loadout: ${WEAPON_DEFS[this.weaponIndex].displayName} + ${OFFHAND_DEFS[this.offhandIndex].displayName} + ${SIGIL_DEFS[this.sigilIndex].displayName}.`;
   }
 
@@ -437,18 +443,28 @@ export class CombatSandboxDirector {
 
 
   getPersistenceSnapshot(): CombatPersistenceSnapshot {
+    const relicIds = this.rewards.getEquippedRelics();
+    const relicModifiers = relicIds.length > 0 ? buildRelicStatModifiers(relicIds) : DEFAULT_RELIC_MODIFIERS;
+
     return {
       biomeId: this.latestEncounter.biomeId,
       sectorIndex: this.latestEncounter.sectorIndex,
       sectorsTotal: this.latestEncounter.sectorsTotal,
       roomLabel: this.latestEncounter.progressLabel,
+      routeStyle: this.latestEncounter.routeStyle,
       missionName: MISSION_TYPE_DEFS[this.missionIndex].displayName,
       health: this.health,
       guard: this.guard,
       focus: this.focus,
       overburn: this.overburn,
-      relicIds: this.rewards.getEquippedRelics()
+      relicIds,
+      relicModifiers
     };
+  }
+
+  private getContractLabel(): string {
+    const mission = MISSION_TYPE_DEFS[this.missionIndex];
+    return `${mission.displayName} (${mission.routeBias.join(' > ')})`;
   }
 
 

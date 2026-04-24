@@ -15,6 +15,7 @@ export interface HudSnapshot {
   readonly rewardLabel: string;
   readonly equippedRelics: readonly string[];
   readonly encounterLabel: string;
+  readonly contractLabel: string;
 }
 
 export class HudManager {
@@ -40,6 +41,7 @@ export class HudManager {
 
     this.root.innerHTML = [
       `Mission: ${snapshot.missionName}`,
+      `Contract: ${snapshot.contractLabel}`,
       `HP ${snapshot.health.toFixed(0)} | Guard ${snapshot.guard.toFixed(0)}`,
       `Focus ${snapshot.focus.toFixed(0)} | Overburn ${snapshot.overburn.toFixed(0)}`,
       `Weapon: ${snapshot.weaponName}`,
