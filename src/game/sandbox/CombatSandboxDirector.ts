@@ -2,8 +2,10 @@ import type { ActionState } from '../../engine/input/ActionMap';
 import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
 import { RewardDirector, type RewardChoiceState } from '../director/RewardDirector';
+import { buildEncounterWave } from '../encounters/EncounterSpawnTables';
 import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
 import { OFFHAND_DEFS } from '../items/OffhandDefs';
+import { buildRelicStatModifiers } from '../items/RelicEffects';
 import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 
@@ -78,6 +80,8 @@ export class CombatSandboxDirector {
   private rewardLabel = 'No reward pending';
   private encounterLabel = '';
   private pendingReward: RewardChoiceState | null = null;
+  private parryDamageBoostTimer = 0;
+  private offhandGuardBoostTimer = 0;
   private roomStartSeconds = 0;
   private elapsedSeconds = 0;
   private roomDamageTaken = 0;
@@ -133,9 +137,12 @@ export class CombatSandboxDirector {
   }
 
   private resolveResources(deltaSeconds: number): void {
-    this.focus = Math.min(MAX_FOCUS, this.focus + deltaSeconds * 4);
+    const modifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
+    this.parryDamageBoostTimer = Math.max(0, this.parryDamageBoostTimer - deltaSeconds);
+    this.offhandGuardBoostTimer = Math.max(0, this.offhandGuardBoostTimer - deltaSeconds);
+    this.focus = Math.min(MAX_FOCUS, this.focus + deltaSeconds * (4 + modifiers.focusRegenPerSecondBonus));
     this.guard = Math.min(MAX_GUARD, this.guard + deltaSeconds * 3);
-    this.overburn = Math.max(0, this.overburn - deltaSeconds * 6);
+    this.overburn = Math.max(0, this.overburn - deltaSeconds * 6 * modifiers.overburnDecayMultiplier);
   }
 
   private resolveRewardInput(actions: ActionState): void {
@@ -188,8 +195,9 @@ export class CombatSandboxDirector {
       this.rotateLoadoutAndMission();
     }
 
-    if (this.isRisingEdge(actions.dash, this.previousActions.dash) && this.focus >= 15) {
-      this.focus -= 15;
+    const dashFocusCost = this.getDashFocusCost();
+    if (this.isRisingEdge(actions.dash, this.previousActions.dash) && this.focus >= dashFocusCost) {
+      this.focus -= dashFocusCost;
       this.overburn = Math.min(MAX_OVERBURN, this.overburn + 12);
       this.objective = 'Dash cancelled: reposition and break a weak target.';
     }
@@ -200,10 +208,15 @@ export class CombatSandboxDirector {
       return;
     }
 
+    const modifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
     const weapon = WEAPON_DEFS[this.weaponIndex];
     const target = this.enemies[0];
     const overburnMultiplier = 1 + this.overburn / 150;
-    target.health -= weapon.baseDamage * overburnMultiplier;
+    const parryBoostMultiplier = this.parryDamageBoostTimer > 0 ? 1.2 : 1;
+    const staggerMultiplier = target.staggerTimer > 0 ? modifiers.staggerDamageMultiplier : 1;
+    const highOverburnBonus = this.overburn >= 50 && this.rewards.getEquippedRelics().includes('sunshard-buckle') ? 1.12 : 1;
+    const totalMultiplier = overburnMultiplier * parryBoostMultiplier * staggerMultiplier * modifiers.primaryDamageMultiplier * highOverburnBonus;
+    target.health -= weapon.baseDamage * totalMultiplier;
     this.overburn = Math.min(MAX_OVERBURN, this.overburn + weapon.overburnGain);
 
     if (target.health <= 0) {
@@ -223,6 +236,9 @@ export class CombatSandboxDirector {
     }
 
     this.focus -= offhand.focusCost;
+    if (this.rewards.getEquippedRelics().includes('hushed-thurible')) {
+      this.offhandGuardBoostTimer = 2;
+    }
 
     if (offhand.id === 'ward-aegis') {
       this.guard = Math.min(MAX_GUARD, this.guard + 24);
@@ -293,7 +309,9 @@ export class CombatSandboxDirector {
       }
 
       if (actions.guard) {
-        this.guard = Math.max(0, this.guard - enemy.damage * 0.65);
+        const relicModifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
+        const offhandWindowMultiplier = this.offhandGuardBoostTimer > 0 ? 0.82 : 1;
+        this.guard = Math.max(0, this.guard - enemy.damage * 0.65 * relicModifiers.guardDamageTakenMultiplier * offhandWindowMultiplier);
         this.overburn = Math.min(MAX_OVERBURN, this.overburn + 5);
       } else {
         this.health = Math.max(0, this.health - enemy.damage);
@@ -317,6 +335,8 @@ export class CombatSandboxDirector {
     const encounter = this.encounter.onRoomCleared(clearSeconds, this.roomDamageTaken >= 24);
     this.latestEncounter = encounter;
 
+    const relicModifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
+    this.focus = Math.min(MAX_FOCUS, this.focus + relicModifiers.roomClearFocusBonus);
     this.pendingReward = this.rewards.rollChoices(3);
     this.rewardLabel = `${encounter.biomeName} / ${encounter.progressLabel} / reward x${encounter.rewardWeight.toFixed(2)}`;
     this.encounterLabel = `${encounter.progressLabel} (${encounter.roomTags.join(', ')})`;
@@ -363,11 +383,28 @@ export class CombatSandboxDirector {
 
   private spawnWave(): void {
     this.enemies.splice(0, this.enemies.length);
-    this.enemies.push(
-      this.createEnemy('ash-mote', 'Ash Mote', 30, 8, 2.2, { meleeWeight: 0.8, rangedWeight: 0 }, 0.45),
-      this.createEnemy('candle-penitent', 'Candle Penitent', 42, 10, 3, { meleeWeight: 0.9, rangedWeight: 0.2 }, 0.55),
-      this.createEnemy('furnace-thurifer', 'Furnace Thurifer', 60, 14, 4.4, { meleeWeight: 0.4, rangedWeight: 0.8 }, 0.75)
-    );
+    const waveTemplates = buildEncounterWave({
+      biomeId: this.latestEncounter.biomeId,
+      roomTags: this.latestEncounter.roomTags,
+      sectorIndex: this.latestEncounter.sectorIndex
+    });
+
+    for (const template of waveTemplates) {
+      this.enemies.push(
+        this.createEnemy(
+          template.archetypeId,
+          template.label,
+          template.baseHealth,
+          template.baseDamage,
+          template.attackInterval,
+          {
+            meleeWeight: template.meleeWeight,
+            rangedWeight: template.rangedWeight
+          },
+          template.telegraphLead
+        )
+      );
+    }
   }
 
   private tryParry(): void {
@@ -380,8 +417,12 @@ export class CombatSandboxDirector {
 
     telegraphedEnemy.attackTimer = telegraphedEnemy.attackInterval + 0.8;
     telegraphedEnemy.staggerTimer = 1.4;
-    this.focus = Math.min(MAX_FOCUS, this.focus + 14);
+    const relicModifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
+    this.focus = Math.min(MAX_FOCUS, this.focus + 14 + relicModifiers.parryFocusBonus);
     this.overburn = Math.min(MAX_OVERBURN, this.overburn + 16);
+    if (this.rewards.getEquippedRelics().includes('parry-ember-ring')) {
+      this.parryDamageBoostTimer = 3;
+    }
     this.objective = `Perfect parry on ${telegraphedEnemy.label}. Enemy staggered and exposed.`;
   }
 
@@ -408,6 +449,12 @@ export class CombatSandboxDirector {
       overburn: this.overburn,
       relicIds: this.rewards.getEquippedRelics()
     };
+  }
+
+
+  private getDashFocusCost(): number {
+    const modifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
+    return Math.max(6, Math.round(15 * modifiers.dashFocusCostMultiplier));
   }
 
   private isRisingEdge(current: boolean, previous: boolean): boolean {

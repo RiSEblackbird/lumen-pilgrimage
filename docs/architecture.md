@@ -8,9 +8,9 @@
 - `engine/save`: セーブデータと設定保存。
 - `engine/debug`: Perf HUD。
 - `game/state`: game state machine。
-- `game/items`: 武器/副手段/sigil/relic のデータ定義。
+- `game/items`: 武器/副手段/sigil/relic のデータ定義と relic stat modifier。
 - `game/director`: 敵圧制御、reward 選択、room 進行制御。
-- `game/encounters`: mission と biome room rule のデータ定義。
+- `game/encounters`: mission / biome room rule / room-tag spawn table のデータ定義。
 - `game/sandbox`: 戦闘サンドボックス進行。
 - `game/ui`: HUD / menu / VR wrist UI。
 - `world/hub`: Hub の最小 3D シーン。
@@ -51,6 +51,8 @@
 - 敵ごとに telegraph lead を持ち、telegraph 中のみ parry 成功。成功時は stagger と Focus/Overburn 報酬を返す。
 - `EnemyCoordinator` が melee token / ranged pressure budget を評価し、同時攻撃数を制御する。
 - wave clear 後は `EncounterDirector` が sector/room を進行し、結果係数を `RewardDirector` の 3 択 relic フローへ接続する。
+- wave spawn は `EncounterSpawnTables` が biome + room tags + sector から算出し、linear 固定 wave を置き換える。
+- relic 取得後は `RelicEffects` を通じて dash cost、guard 被ダメ、room clear Focus 回復、parry 報酬などに補正を適用する。
 - `SaveManager` は slot0 を `loadOrCreate` し、sandbox の expedition 進行を 1 秒間隔で保存する。
 - `MenuManager` は `SaveManager` の expedition snapshot を読み、Hub の Continue 情報として biome/sector/room/vitals/relic を表示する。
 - mission は `MissionTypes` でデータ駆動定義し、sandbox でローテーション表示する。

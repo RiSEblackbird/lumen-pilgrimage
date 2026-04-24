@@ -11,9 +11,9 @@
     "phase4-encounter-director-room-flow"
   ],
   "next_actions": [
-    "wire EncounterDirector to biome room graph generation",
-    "replace sandbox wave spawns with room-tag-aware encounter spawning",
-    "connect persisted relic effects to combat stat application"
+    "wire EncounterDirector to branching room graph generation",
+    "introduce biome-specific enemy families beyond ember/moon templates",
+    "persist applied relic stat modifiers into save snapshot and continue flow"
   ],
   "smoke_commands": [
     "npm run typecheck",
@@ -21,7 +21,8 @@
     "npm run dev"
   ],
   "risks": [
-    "relic effects are still declarative and not yet applied to combat stats",
-    "encounter data currently covers only Ember Ossuary and Moon Reservoir"
+    "relic effects currently cover stat modifiers only; proc/event-driven effects remain declarative",
+    "encounter data currently covers only Ember Ossuary and Moon Reservoir",
+    "room routing remains linear and does not yet include risk-room branching"
   ]
 }
