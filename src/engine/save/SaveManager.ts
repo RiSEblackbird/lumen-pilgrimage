@@ -60,17 +60,19 @@ export class SaveManager {
     localStorage.setItem(this.key(slot.slotId), JSON.stringify(slot));
   }
 
-  updateExpedition(slotId: number, expedition: ExpeditionProgress | null): void {
+  updateExpedition(slotId: number, expedition: ExpeditionProgress | null): SaveSlot | null {
     const current = this.load(slotId);
     if (!current) {
-      return;
+      return null;
     }
 
-    this.save({
+    const updated: SaveSlot = {
       ...current,
       expedition,
       updatedAtIso: new Date().toISOString()
-    });
+    };
+    this.save(updated);
+    return updated;
   }
 
   private key(slotId: number): string {
