@@ -28,6 +28,8 @@ npm run check
 - HUD / Menu の最小 UI（保存済み expedition snapshot を Continue 情報として表示）
 - MainMenu コマンド UI（Continue / New Game / Settings / Credits）と command queue
 - run 開始の明示分岐（起動直後は MainMenu 待機、選択後に InExpedition へ遷移）
+
+- legacy ritual/glyph/export/codex 実装（`RitualState` / `GlyphSystem` / `DreamExporter` / `Sanctuary` ほか）を `src/` から削除し、新基盤のみを保守対象へ整理
 - New Game 時の slot reset と sandbox 初期化
 - Settings パネル（snap turn / seated mode / reduce flashing / UI scale / master volume）と保存
 - Settings の実ランタイム反映（UI scale: HUD/Menu/PerfHud、master volume: AudioListener、XR comfort: wrist UI 表示、reduce flashing: hub scene motion）

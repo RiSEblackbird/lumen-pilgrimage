@@ -80,6 +80,8 @@
 - `RewardDirector` を biome ごとの loot table と rarity 重みへ接続して drop 品質を調整。
 - `PilgrimsBelfryScene` を Hub 機能（craft, codex, mode select）へ分解。
 
-## 旧構成の扱い
+## レガシー撤去状況
 
-`app/`, `world/`, `ui/`, `export/` の旧 ritual/glyph 系実装は参照用に残置。ランタイムのエントリ経路は `src/main.ts` から新 `AppBootstrap` / `Game` に切替済み。
+旧 `RitualState` / `GlyphSystem` / `DreamExporter` / `FlatCodexPanel` / `VrCodexPanel` / `Sanctuary` 系実装は `src/` から削除済み。
+
+ランタイムは `src/main.ts` → `AppBootstrap` → `Game` の単一経路のみを保持し、ritual/glyph 依存をコードベース上から排除した。
