@@ -1,8 +1,8 @@
-import { LumenPilgrimageApp } from './app/LumenPilgrimageApp';
+import { AppBootstrap } from './bootstrap/AppBootstrap';
 
 const mount = document.querySelector<HTMLDivElement>('#app');
 if (!mount) {
   throw new Error('Missing #app mount point');
 }
 
-new LumenPilgrimageApp(mount);
+new AppBootstrap(mount).start();
