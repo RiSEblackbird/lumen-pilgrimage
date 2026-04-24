@@ -1,4 +1,4 @@
-# Architecture: Lumen Pilgrimage Reforge (Phase 3.5)
+# Architecture: Lumen Pilgrimage Reforge (Phase 4.1)
 
 ## レイヤー責務
 
@@ -51,6 +51,7 @@
 - 敵ごとに telegraph lead を持ち、telegraph 中のみ parry 成功。成功時は stagger と Focus/Overburn 報酬を返す。
 - `EnemyCoordinator` が melee token / ranged pressure budget を評価し、同時攻撃数を制御する。
 - wave clear 後は `EncounterDirector` が sector/room を進行し、結果係数を `RewardDirector` の 3 択 relic フローへ接続する。
+- `SaveManager` は slot0 を `loadOrCreate` し、sandbox の expedition 進行を 1 秒間隔で保存する。
 - mission は `MissionTypes` でデータ駆動定義し、sandbox でローテーション表示する。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 

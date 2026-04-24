@@ -1,9 +1,24 @@
 import type { GameState } from '../../game/state/GameState';
 
+export interface ExpeditionProgress {
+  readonly biomeId: string;
+  readonly sectorIndex: number;
+  readonly sectorsTotal: number;
+  readonly roomLabel: string;
+  readonly missionName: string;
+  readonly health: number;
+  readonly guard: number;
+  readonly focus: number;
+  readonly overburn: number;
+  readonly relicIds: readonly string[];
+  readonly capturedAtIso: string;
+}
+
 export interface SaveSlot {
   readonly slotId: number;
   readonly state: GameState;
   readonly unlockedBiomes: readonly string[];
+  readonly expedition: ExpeditionProgress | null;
   readonly updatedAtIso: string;
 }
 
@@ -17,17 +32,153 @@ export class SaveManager {
     }
 
     try {
-      return JSON.parse(raw) as SaveSlot;
+      const parsed: unknown = JSON.parse(raw);
+      return this.parseSlot(parsed);
     } catch {
       return null;
     }
+  }
+
+  loadOrCreate(slotId: number, fallback: Omit<SaveSlot, 'slotId' | 'updatedAtIso'>): SaveSlot {
+    const existing = this.load(slotId);
+    if (existing) {
+      return existing;
+    }
+
+    const created: SaveSlot = {
+      slotId,
+      state: fallback.state,
+      unlockedBiomes: fallback.unlockedBiomes,
+      expedition: fallback.expedition,
+      updatedAtIso: new Date().toISOString()
+    };
+    this.save(created);
+    return created;
   }
 
   save(slot: SaveSlot): void {
     localStorage.setItem(this.key(slot.slotId), JSON.stringify(slot));
   }
 
+  updateExpedition(slotId: number, expedition: ExpeditionProgress | null): void {
+    const current = this.load(slotId);
+    if (!current) {
+      return;
+    }
+
+    this.save({
+      ...current,
+      expedition,
+      updatedAtIso: new Date().toISOString()
+    });
+  }
+
   private key(slotId: number): string {
     return `${this.keyPrefix}${slotId}`;
+  }
+
+  private parseSlot(input: unknown): SaveSlot | null {
+    if (!this.isRecord(input)) {
+      return null;
+    }
+
+    if (typeof input.slotId !== 'number' || !Number.isInteger(input.slotId)) {
+      return null;
+    }
+
+    if (!this.isGameState(input.state)) {
+      return null;
+    }
+
+    if (!Array.isArray(input.unlockedBiomes) || !input.unlockedBiomes.every((entry) => typeof entry === 'string')) {
+      return null;
+    }
+
+    if (typeof input.updatedAtIso !== 'string') {
+      return null;
+    }
+
+    const expedition = this.parseExpedition(input.expedition);
+    if (input.expedition !== null && expedition === null) {
+      return null;
+    }
+
+    return {
+      slotId: input.slotId,
+      state: input.state,
+      unlockedBiomes: input.unlockedBiomes,
+      expedition,
+      updatedAtIso: input.updatedAtIso
+    };
+  }
+
+  private parseExpedition(input: unknown): ExpeditionProgress | null {
+    if (input === null || input === undefined) {
+      return null;
+    }
+
+    if (!this.isRecord(input)) {
+      return null;
+    }
+
+    const relicIds = input.relicIds;
+    if (!Array.isArray(relicIds) || !relicIds.every((entry) => typeof entry === 'string')) {
+      return null;
+    }
+
+    const numberKeys: Array<keyof ExpeditionProgress> = ['sectorIndex', 'sectorsTotal', 'health', 'guard', 'focus', 'overburn'];
+    const stringKeys: Array<keyof ExpeditionProgress> = [
+      'biomeId',
+      'roomLabel',
+      'missionName',
+      'capturedAtIso'
+    ];
+
+    if (numberKeys.some((key) => typeof input[key] !== 'number')) {
+      return null;
+    }
+
+    if (stringKeys.some((key) => typeof input[key] !== 'string')) {
+      return null;
+    }
+
+    return {
+      biomeId: input.biomeId as string,
+      sectorIndex: input.sectorIndex as number,
+      sectorsTotal: input.sectorsTotal as number,
+      roomLabel: input.roomLabel as string,
+      missionName: input.missionName as string,
+      health: input.health as number,
+      guard: input.guard as number,
+      focus: input.focus as number,
+      overburn: input.overburn as number,
+      relicIds: relicIds as string[],
+      capturedAtIso: input.capturedAtIso as string
+    };
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private isGameState(value: unknown): value is GameState {
+    return (
+      typeof value === 'string' &&
+      [
+        'Boot',
+        'MainMenu',
+        'Hub',
+        'ExpeditionPrep',
+        'InExpedition',
+        'MiniBoss',
+        'Boss',
+        'Extraction',
+        'MetaUpgrade',
+        'GameOver',
+        'Credits',
+        'BossRush',
+        'EndlessCollapse'
+      ].includes(value)
+    );
   }
 }

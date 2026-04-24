@@ -7,6 +7,19 @@ import { OFFHAND_DEFS } from '../items/OffhandDefs';
 import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 
+export interface CombatPersistenceSnapshot {
+  readonly biomeId: string;
+  readonly sectorIndex: number;
+  readonly sectorsTotal: number;
+  readonly roomLabel: string;
+  readonly missionName: string;
+  readonly health: number;
+  readonly guard: number;
+  readonly focus: number;
+  readonly overburn: number;
+  readonly relicIds: readonly string[];
+}
+
 interface SandboxEnemy {
   readonly key: string;
   readonly label: string;
@@ -49,6 +62,7 @@ export class CombatSandboxDirector {
   private readonly coordinator = new EnemyCoordinator();
   private readonly rewards = new RewardDirector();
   private readonly encounter = new EncounterDirector();
+  private latestEncounter = this.encounter.snapshot();
 
   private enemySerial = 0;
   private health = MAX_HEALTH;
@@ -85,7 +99,8 @@ export class CombatSandboxDirector {
     };
 
     this.encounter.startExpedition('ember-ossuary');
-    this.encounterLabel = this.encounter.snapshot().progressLabel;
+    this.latestEncounter = this.encounter.snapshot();
+    this.encounterLabel = this.latestEncounter.progressLabel;
     this.spawnWave();
   }
 
@@ -300,6 +315,7 @@ export class CombatSandboxDirector {
   private advanceEncounterRoom(): void {
     const clearSeconds = this.elapsedSeconds - this.roomStartSeconds;
     const encounter = this.encounter.onRoomCleared(clearSeconds, this.roomDamageTaken >= 24);
+    this.latestEncounter = encounter;
 
     this.pendingReward = this.rewards.rollChoices(3);
     this.rewardLabel = `${encounter.biomeName} / ${encounter.progressLabel} / reward x${encounter.rewardWeight.toFixed(2)}`;
@@ -376,6 +392,22 @@ export class CombatSandboxDirector {
     }
 
     return `${telegraphedEnemy.label} attack incoming`;
+  }
+
+
+  getPersistenceSnapshot(): CombatPersistenceSnapshot {
+    return {
+      biomeId: this.latestEncounter.biomeId,
+      sectorIndex: this.latestEncounter.sectorIndex,
+      sectorsTotal: this.latestEncounter.sectorsTotal,
+      roomLabel: this.latestEncounter.progressLabel,
+      missionName: MISSION_TYPE_DEFS[this.missionIndex].displayName,
+      health: this.health,
+      guard: this.guard,
+      focus: this.focus,
+      overburn: this.overburn,
+      relicIds: this.rewards.getEquippedRelics()
+    };
   }
 
   private isRisingEdge(current: boolean, previous: boolean): boolean {

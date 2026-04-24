@@ -33,6 +33,7 @@ export class Game {
 
   private fpsAccumulator = 0;
   private fpsFrameCount = 0;
+  private saveAccumulator = 0;
 
   constructor(container: HTMLElement) {
     this.renderer = new WebGLRenderer({ antialias: true });
@@ -51,11 +52,10 @@ export class Game {
     this.hubScene = new PilgrimsBelfryScene(this.scene);
 
     this.settings.save(this.settings.load());
-    this.saves.save({
-      slotId: 0,
+    this.saves.loadOrCreate(0, {
       state: 'Hub',
       unlockedBiomes: ['Ember Ossuary'],
-      updatedAtIso: new Date().toISOString()
+      expedition: null
     });
 
     container.appendChild(this.renderer.domElement);
@@ -92,6 +92,25 @@ export class Game {
         objective
       });
       this.menu.setState(this.states.current);
+
+      this.saveAccumulator += delta;
+      if (this.saveAccumulator >= 1) {
+        this.saveAccumulator = 0;
+        const snapshot = this.combatSandbox.getPersistenceSnapshot();
+        this.saves.updateExpedition(0, {
+          biomeId: snapshot.biomeId,
+          sectorIndex: snapshot.sectorIndex,
+          sectorsTotal: snapshot.sectorsTotal,
+          roomLabel: snapshot.roomLabel,
+          missionName: snapshot.missionName,
+          health: snapshot.health,
+          guard: snapshot.guard,
+          focus: snapshot.focus,
+          overburn: snapshot.overburn,
+          relicIds: snapshot.relicIds,
+          capturedAtIso: new Date().toISOString()
+        });
+      }
     });
   }
 
