@@ -5,15 +5,19 @@
   "completed": [
     "phase1-foundation",
     "phase2-combat-sandbox",
-    "phase3-pressure-mission-reward"
+    "phase3-pressure-mission-reward",
+    "phase4-room-graph-branching",
+    "phase4-contract-route-save"
   ],
   "in_progress": [
-    "phase4-encounter-director-room-flow"
+    "phase4-encounter-director-room-flow",
+    "phase4-hub-biome-boss-foundation"
   ],
   "next_actions": [
-    "wire EncounterDirector to branching room graph generation",
-    "introduce biome-specific enemy families beyond ember/moon templates",
-    "persist applied relic stat modifiers into save snapshot and continue flow"
+    "introduce biome-specific enemy families for Ember/Moon contracts",
+    "implement two biome boss encounter stubs with phase state + HUD readout",
+    "wire continue snapshot restore path so relic modifiers are reapplied on resume",
+    "add hub-side unlock/craft placeholder panels tied to saved currencies"
   ],
   "smoke_commands": [
     "npm run typecheck",
@@ -23,6 +27,6 @@
   "risks": [
     "relic effects currently cover stat modifiers only; proc/event-driven effects remain declarative",
     "encounter data currently covers only Ember Ossuary and Moon Reservoir",
-    "room routing remains linear and does not yet include risk-room branching"
+    "boss encounters and hub permanent progression are not yet implemented in Phase 4 scope"
   ]
 }

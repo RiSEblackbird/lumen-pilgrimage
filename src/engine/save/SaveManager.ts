@@ -1,16 +1,20 @@
 import type { GameState } from '../../game/state/GameState';
+import { DEFAULT_RELIC_MODIFIERS } from '../../game/items/RelicEffects';
+import type { RelicStatModifiers } from '../../game/items/RelicEffects';
 
 export interface ExpeditionProgress {
   readonly biomeId: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
   readonly roomLabel: string;
+  readonly routeStyle: string;
   readonly missionName: string;
   readonly health: number;
   readonly guard: number;
   readonly focus: number;
   readonly overburn: number;
   readonly relicIds: readonly string[];
+  readonly relicModifiers: RelicStatModifiers;
   readonly capturedAtIso: string;
 }
 
@@ -132,6 +136,7 @@ export class SaveManager {
     const stringKeys: Array<keyof ExpeditionProgress> = [
       'biomeId',
       'roomLabel',
+      'routeStyle',
       'missionName',
       'capturedAtIso'
     ];
@@ -144,18 +149,61 @@ export class SaveManager {
       return null;
     }
 
+    const relicModifiers = this.parseRelicModifiers(input.relicModifiers);
+    if (!relicModifiers) {
+      return null;
+    }
+
     return {
       biomeId: input.biomeId as string,
       sectorIndex: input.sectorIndex as number,
       sectorsTotal: input.sectorsTotal as number,
       roomLabel: input.roomLabel as string,
+      routeStyle: input.routeStyle as string,
       missionName: input.missionName as string,
       health: input.health as number,
       guard: input.guard as number,
       focus: input.focus as number,
       overburn: input.overburn as number,
       relicIds: relicIds as string[],
+      relicModifiers,
       capturedAtIso: input.capturedAtIso as string
+    };
+  }
+
+  private parseRelicModifiers(input: unknown): RelicStatModifiers | null {
+    if (input === undefined || input === null) {
+      return DEFAULT_RELIC_MODIFIERS;
+    }
+
+    if (!this.isRecord(input)) {
+      return null;
+    }
+
+    const keys: Array<keyof RelicStatModifiers> = [
+      'primaryDamageMultiplier',
+      'staggerDamageMultiplier',
+      'dashFocusCostMultiplier',
+      'guardDamageTakenMultiplier',
+      'focusRegenPerSecondBonus',
+      'overburnDecayMultiplier',
+      'roomClearFocusBonus',
+      'parryFocusBonus'
+    ];
+
+    if (keys.some((key) => typeof input[key] !== 'number')) {
+      return null;
+    }
+
+    return {
+      primaryDamageMultiplier: input.primaryDamageMultiplier as number,
+      staggerDamageMultiplier: input.staggerDamageMultiplier as number,
+      dashFocusCostMultiplier: input.dashFocusCostMultiplier as number,
+      guardDamageTakenMultiplier: input.guardDamageTakenMultiplier as number,
+      focusRegenPerSecondBonus: input.focusRegenPerSecondBonus as number,
+      overburnDecayMultiplier: input.overburnDecayMultiplier as number,
+      roomClearFocusBonus: input.roomClearFocusBonus as number,
+      parryFocusBonus: input.parryFocusBonus as number
     };
   }
 

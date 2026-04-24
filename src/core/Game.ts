@@ -105,12 +105,14 @@ export class Game {
           sectorIndex: snapshot.sectorIndex,
           sectorsTotal: snapshot.sectorsTotal,
           roomLabel: snapshot.roomLabel,
+          routeStyle: snapshot.routeStyle,
           missionName: snapshot.missionName,
           health: snapshot.health,
           guard: snapshot.guard,
           focus: snapshot.focus,
           overburn: snapshot.overburn,
           relicIds: snapshot.relicIds,
+          relicModifiers: snapshot.relicModifiers,
           capturedAtIso: new Date().toISOString()
         });
         if (updated) {
