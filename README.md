@@ -29,7 +29,8 @@ npm run check
 - MainMenu コマンド UI（Continue / New Game / Settings / Credits）と command queue
 - run 開始の明示分岐（起動直後は MainMenu 待機、選択後に InExpedition へ遷移）
 - New Game 時の slot reset と sandbox 初期化
-- Settings パネル（snap turn / seated mode / reduce flashing / master volume）と保存
+- Settings パネル（snap turn / seated mode / reduce flashing / UI scale / master volume）と保存
+- Settings の実ランタイム反映（UI scale: HUD/Menu/PerfHud、master volume: AudioListener、XR comfort: wrist UI 表示、reduce flashing: hub scene motion）
 - Credits パネルと MainMenu 復帰導線
 - Hub パネルで恒久通貨（Lumen Ash / Choir Thread / Saint Glass / Echo Script）と unlock 状態を表示
 - MetaUpgrade で Astral Pike unlock / Beacon Crucible craft の保存連動プレースホルダ
