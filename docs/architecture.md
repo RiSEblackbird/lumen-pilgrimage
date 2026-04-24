@@ -52,6 +52,7 @@
 - `EnemyCoordinator` が melee token / ranged pressure budget を評価し、同時攻撃数を制御する。
 - wave clear 後は `EncounterDirector` が sector/room を進行し、結果係数を `RewardDirector` の 3 択 relic フローへ接続する。
 - `SaveManager` は slot0 を `loadOrCreate` し、sandbox の expedition 進行を 1 秒間隔で保存する。
+- `MenuManager` は `SaveManager` の expedition snapshot を読み、Hub の Continue 情報として biome/sector/room/vitals/relic を表示する。
 - mission は `MissionTypes` でデータ駆動定義し、sandbox でローテーション表示する。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 

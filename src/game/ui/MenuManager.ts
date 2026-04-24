@@ -1,7 +1,23 @@
 import type { GameState } from '../state/GameState';
 
+export interface ContinueSnapshot {
+  readonly biomeId: string;
+  readonly sectorIndex: number;
+  readonly sectorsTotal: number;
+  readonly roomLabel: string;
+  readonly missionName: string;
+  readonly health: number;
+  readonly guard: number;
+  readonly focus: number;
+  readonly overburn: number;
+  readonly relicIds: readonly string[];
+  readonly capturedAtIso: string;
+}
+
 export class MenuManager {
   private readonly root: HTMLDivElement;
+  private state: GameState = 'Boot';
+  private continueSnapshot: ContinueSnapshot | null = null;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -18,6 +34,34 @@ export class MenuManager {
   }
 
   setState(state: GameState): void {
-    this.root.textContent = `State: ${state}`;
+    this.state = state;
+    this.render();
+  }
+
+  setContinueSnapshot(snapshot: ContinueSnapshot | null): void {
+    this.continueSnapshot = snapshot;
+    this.render();
+  }
+
+  private render(): void {
+    const snapshot = this.continueSnapshot;
+    if (!snapshot) {
+      this.root.innerHTML = [`State: ${this.state}`, 'Continue: no expedition snapshot'].join('<br/>');
+      return;
+    }
+
+    const capturedAt = new Date(snapshot.capturedAtIso);
+    const capturedLabel = Number.isNaN(capturedAt.getTime()) ? snapshot.capturedAtIso : capturedAt.toLocaleString();
+    const relicSummary = snapshot.relicIds.length === 0 ? 'none' : snapshot.relicIds.join(', ');
+
+    this.root.innerHTML = [
+      `State: ${this.state}`,
+      `Continue: ${snapshot.biomeId} / Sector ${snapshot.sectorIndex}/${snapshot.sectorsTotal}`,
+      `Room: ${snapshot.roomLabel}`,
+      `Mission: ${snapshot.missionName}`,
+      `Vitals: HP ${snapshot.health.toFixed(0)} | Guard ${snapshot.guard.toFixed(0)} | Focus ${snapshot.focus.toFixed(0)} | Overburn ${snapshot.overburn.toFixed(0)}`,
+      `Relics: ${relicSummary}`,
+      `Saved: ${capturedLabel}`
+    ].join('<br/>');
   }
 }

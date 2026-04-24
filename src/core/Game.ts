@@ -9,7 +9,7 @@ import { SaveManager } from '../engine/save/SaveManager';
 import { PerfHud } from '../engine/debug/PerfHud';
 import { GameStateMachine } from '../game/state/GameStateMachine';
 import { HudManager } from '../game/ui/HudManager';
-import { MenuManager } from '../game/ui/MenuManager';
+import { MenuManager, type ContinueSnapshot } from '../game/ui/MenuManager';
 import { VrWristUi } from '../game/ui/VrWristUi';
 import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
@@ -34,6 +34,7 @@ export class Game {
   private fpsAccumulator = 0;
   private fpsFrameCount = 0;
   private saveAccumulator = 0;
+  private continueSnapshot: ContinueSnapshot | null = null;
 
   constructor(container: HTMLElement) {
     this.renderer = new WebGLRenderer({ antialias: true });
@@ -52,11 +53,13 @@ export class Game {
     this.hubScene = new PilgrimsBelfryScene(this.scene);
 
     this.settings.save(this.settings.load());
-    this.saves.loadOrCreate(0, {
+    const slot = this.saves.loadOrCreate(0, {
       state: 'Hub',
       unlockedBiomes: ['Ember Ossuary'],
       expedition: null
     });
+    this.continueSnapshot = slot.expedition;
+    this.menu.setContinueSnapshot(this.continueSnapshot);
 
     container.appendChild(this.renderer.domElement);
     container.appendChild(VRButton.createButton(this.renderer));
@@ -97,7 +100,7 @@ export class Game {
       if (this.saveAccumulator >= 1) {
         this.saveAccumulator = 0;
         const snapshot = this.combatSandbox.getPersistenceSnapshot();
-        this.saves.updateExpedition(0, {
+        const updated = this.saves.updateExpedition(0, {
           biomeId: snapshot.biomeId,
           sectorIndex: snapshot.sectorIndex,
           sectorsTotal: snapshot.sectorsTotal,
@@ -110,6 +113,10 @@ export class Game {
           relicIds: snapshot.relicIds,
           capturedAtIso: new Date().toISOString()
         });
+        if (updated) {
+          this.continueSnapshot = updated.expedition;
+          this.menu.setContinueSnapshot(this.continueSnapshot);
+        }
       }
     });
   }

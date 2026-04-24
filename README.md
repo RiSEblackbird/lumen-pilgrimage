@@ -25,7 +25,7 @@ npm run check
 - `SaveManager` / `SettingsStore`（slot0 の初期化 + expedition 進行スナップショット自動保存）
 - `PerfHud`（簡易 FPS 監視）
 - Hub skeleton (`PilgrimsBelfryScene`)
-- HUD / Menu の最小 UI
+- HUD / Menu の最小 UI（保存済み expedition snapshot を Continue 情報として表示）
 - combat sandbox (`CombatSandboxDirector`)
   - 主武器 4 種（Prism Blade / Censer Carbine / Astral Pike / Thurible Chain）
   - 副手段 4 種（Ward Aegis / Grasp Tether / Beacon Crucible / Siphon Engine）
