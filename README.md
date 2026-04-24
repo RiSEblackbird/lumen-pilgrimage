@@ -37,6 +37,8 @@ npm run check
   - enemy coordinator（melee token / ranged budget）
   - mission 8系統ローテーション表示（Purge Nest 〜 Echo Rescue）
   - EncounterDirector による biome/sector/room 進行表示（Ember Ossuary / Moon Reservoir）
+  - room tag 連動の wave spawn table（arena / traversal / elite / reward / secret / boss-approach）
+  - 取得 relic の stat modifier を combat resource/damage へ反映（dash cost / guard mitigation / parry bonus / room-clear focus 等）
 
 ## サンドボックス操作（flat-screen）
 
@@ -93,4 +95,4 @@ src/
 
 ## 次フェーズ方針
 
-Phase 4 継続として、room graph 本体、タグ連動スポーン、Hub 恒久成長 UI を実装します。
+Phase 4 継続として、room graph 本体と分岐導線、Hub 恒久成長 UI、proc 系 relic 効果を実装します。

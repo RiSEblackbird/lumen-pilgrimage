@@ -1,4 +1,4 @@
-import { BIOME_ENCOUNTER_SETS, type BiomeEncounterSet, type EncounterRoomRule } from '../encounters/EncounterRuleSet';
+import { BIOME_ENCOUNTER_SETS, type BiomeEncounterSet, type EncounterRoomRule, type RoomTag } from '../encounters/EncounterRuleSet';
 
 export interface EncounterSnapshot {
   readonly biomeId: string;
@@ -6,7 +6,7 @@ export interface EncounterSnapshot {
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
   readonly roomName: string;
-  readonly roomTags: readonly string[];
+  readonly roomTags: readonly RoomTag[];
   readonly progressLabel: string;
   readonly rewardWeight: number;
 }

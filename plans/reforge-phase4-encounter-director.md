@@ -23,6 +23,8 @@ Phase 4 の最初の到達点として、EncounterDirector を導入し、biome/
 - [x] M5: HUD / docs 更新
 - [x] M6: typecheck/build
 - [x] M7: Hub continue UI に保存済み expedition snapshot を表示
+- [x] M8: room tag 連動の wave spawn table を sandbox に接続
+- [x] M9: 取得 relic の統計補正を combat resource/damage 計算へ反映
 
 ## 受け入れ条件
 - [x] biome/sector/room の進行ラベルが更新される
@@ -35,7 +37,7 @@ Phase 4 の最初の到達点として、EncounterDirector を導入し、biome/
 - `npm run build`
 
 ## 既知 blocker
-- room graph の枝分かれ生成、タグ連動スポーン、relic 効果適用は未着手
+- room graph の枝分かれ生成（分岐/ショートカット）は未着手
 
 ## Feature Flag / Rollback
 - `CombatSandboxDirector` の `EncounterDirector` 呼び出しを外せば旧挙動へ復帰可能
