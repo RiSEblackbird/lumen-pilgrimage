@@ -6,11 +6,15 @@ export interface HudSnapshot {
   readonly objective: string;
   readonly weaponName: string;
   readonly offhandName: string;
+  readonly sigilName: string;
   readonly enemiesRemaining: number;
   readonly telegraphLabel: string;
   readonly staggeredEnemies: number;
   readonly missionName: string;
   readonly pressureLabel: string;
+  readonly rewardLabel: string;
+  readonly equippedRelics: readonly string[];
+  readonly encounterLabel: string;
 }
 
 export class HudManager {
@@ -32,14 +36,20 @@ export class HudManager {
   }
 
   render(snapshot: HudSnapshot): void {
+    const relicSummary = snapshot.equippedRelics.length > 0 ? snapshot.equippedRelics.join(', ') : 'none';
+
     this.root.innerHTML = [
       `Mission: ${snapshot.missionName}`,
       `HP ${snapshot.health.toFixed(0)} | Guard ${snapshot.guard.toFixed(0)}`,
       `Focus ${snapshot.focus.toFixed(0)} | Overburn ${snapshot.overburn.toFixed(0)}`,
       `Weapon: ${snapshot.weaponName}`,
-      `Offhand: ${snapshot.offhandName} | Enemies: ${snapshot.enemiesRemaining} | Staggered: ${snapshot.staggeredEnemies}`,
+      `Offhand: ${snapshot.offhandName} | Sigil: ${snapshot.sigilName}`,
+      `Enemies: ${snapshot.enemiesRemaining} | Staggered: ${snapshot.staggeredEnemies}`,
       `Telegraph: ${snapshot.telegraphLabel}`,
       `Pressure: ${snapshot.pressureLabel}`,
+      `Encounter: ${snapshot.encounterLabel}`,
+      `Reward: ${snapshot.rewardLabel}`,
+      `Relics: ${relicSummary}`,
       `Objective: ${snapshot.objective}`
     ].join('<br/>');
   }

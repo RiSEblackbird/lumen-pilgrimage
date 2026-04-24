@@ -1,0 +1,27 @@
+{
+  "task": "lumen-pilgrimage-reforge",
+  "updated_at": "2026-04-24",
+  "current_phase": "Phase 4 (in progress)",
+  "completed": [
+    "phase1-foundation",
+    "phase2-combat-sandbox",
+    "phase3-pressure-mission-reward"
+  ],
+  "in_progress": [
+    "phase4-encounter-director-room-flow"
+  ],
+  "next_actions": [
+    "wire EncounterDirector to biome room graph generation",
+    "replace sandbox wave spawns with room-tag-aware encounter spawning",
+    "persist expedition progress in SaveManager"
+  ],
+  "smoke_commands": [
+    "npm run typecheck",
+    "npm run build",
+    "npm run dev"
+  ],
+  "risks": [
+    "relic effects are still declarative and not yet applied to combat stats",
+    "encounter data currently covers only Ember Ossuary and Moon Reservoir"
+  ]
+}

@@ -1,12 +1,14 @@
 import type { ActionState } from '../../engine/input/ActionMap';
+import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
+import { RewardDirector, type RewardChoiceState } from '../director/RewardDirector';
 import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
 import { OFFHAND_DEFS } from '../items/OffhandDefs';
+import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 
 interface SandboxEnemy {
   readonly key: string;
-  readonly archetypeId: string;
   readonly label: string;
   health: number;
   readonly damage: number;
@@ -26,11 +28,15 @@ export interface CombatSandboxSnapshot {
   readonly objective: string;
   readonly weaponName: string;
   readonly offhandName: string;
+  readonly sigilName: string;
   readonly enemiesRemaining: number;
   readonly telegraphLabel: string;
   readonly staggeredEnemies: number;
   readonly missionName: string;
   readonly pressureLabel: string;
+  readonly rewardLabel: string;
+  readonly equippedRelics: readonly string[];
+  readonly encounterLabel: string;
 }
 
 const MAX_HEALTH = 100;
@@ -39,13 +45,11 @@ const MAX_FOCUS = 100;
 const MAX_OVERBURN = 100;
 
 export class CombatSandboxDirector {
-  private readonly enemies: SandboxEnemy[] = [
-    this.createEnemy('ash-mote', 'Ash Mote', 30, 8, 2.4, { meleeWeight: 0.8, rangedWeight: 0 }),
-    this.createEnemy('candle-penitent', 'Candle Penitent', 42, 10, 3.2, { meleeWeight: 0.9, rangedWeight: 0.2 }),
-    this.createEnemy('furnace-thurifer', 'Furnace Thurifer', 60, 14, 4.6, { meleeWeight: 0.4, rangedWeight: 0.8 })
-  ];
-
+  private readonly enemies: SandboxEnemy[] = [];
   private readonly coordinator = new EnemyCoordinator();
+  private readonly rewards = new RewardDirector();
+  private readonly encounter = new EncounterDirector();
+
   private enemySerial = 0;
   private health = MAX_HEALTH;
   private guard = MAX_GUARD;
@@ -53,9 +57,16 @@ export class CombatSandboxDirector {
   private overburn = 0;
   private weaponIndex = 0;
   private offhandIndex = 0;
+  private sigilIndex = 0;
   private missionIndex = 0;
   private objective = MISSION_TYPE_DEFS[0].targetObjective;
   private pressureLabel = 'No active pressure budget';
+  private rewardLabel = 'No reward pending';
+  private encounterLabel = '';
+  private pendingReward: RewardChoiceState | null = null;
+  private roomStartSeconds = 0;
+  private elapsedSeconds = 0;
+  private roomDamageTaken = 0;
   private previousActions: ActionState;
 
   constructor() {
@@ -72,10 +83,16 @@ export class CombatSandboxDirector {
       interact: false,
       openMenu: false
     };
+
+    this.encounter.startExpedition('ember-ossuary');
+    this.encounterLabel = this.encounter.snapshot().progressLabel;
+    this.spawnWave();
   }
 
   update(actions: ActionState, deltaSeconds: number): CombatSandboxSnapshot {
+    this.elapsedSeconds += deltaSeconds;
     this.resolveResources(deltaSeconds);
+    this.resolveRewardInput(actions);
     this.resolvePlayerActions(actions);
     this.resolveEnemyPressure(deltaSeconds, actions);
     this.previousActions = actions;
@@ -88,11 +105,15 @@ export class CombatSandboxDirector {
       objective: this.objective,
       weaponName: WEAPON_DEFS[this.weaponIndex].displayName,
       offhandName: OFFHAND_DEFS[this.offhandIndex].displayName,
+      sigilName: SIGIL_DEFS[this.sigilIndex].displayName,
       enemiesRemaining: this.enemies.length,
       telegraphLabel: this.getTelegraphLabel(),
       staggeredEnemies: this.enemies.filter((enemy) => enemy.staggerTimer > 0).length,
       missionName: MISSION_TYPE_DEFS[this.missionIndex].displayName,
-      pressureLabel: this.pressureLabel
+      pressureLabel: this.pressureLabel,
+      rewardLabel: this.rewardLabel,
+      equippedRelics: this.rewards.getEquippedRelics(),
+      encounterLabel: this.encounterLabel
     };
   }
 
@@ -102,7 +123,40 @@ export class CombatSandboxDirector {
     this.overburn = Math.max(0, this.overburn - deltaSeconds * 6);
   }
 
+  private resolveRewardInput(actions: ActionState): void {
+    if (!this.pendingReward) {
+      return;
+    }
+
+    if (this.isRisingEdge(actions.moveLeft, this.previousActions.moveLeft)) {
+      const maxIndex = this.pendingReward.options.length - 1;
+      const next = this.pendingReward.selectedIndex === 0 ? maxIndex : this.pendingReward.selectedIndex - 1;
+      this.pendingReward = { ...this.pendingReward, selectedIndex: next };
+    }
+
+    if (this.isRisingEdge(actions.moveRight, this.previousActions.moveRight)) {
+      const next = (this.pendingReward.selectedIndex + 1) % this.pendingReward.options.length;
+      this.pendingReward = { ...this.pendingReward, selectedIndex: next };
+    }
+
+    if (this.isRisingEdge(actions.interact, this.previousActions.interact)) {
+      const selected = this.rewards.claimChoice(this.pendingReward);
+      this.pendingReward = null;
+      this.rewardLabel = `${selected.displayName} claimed (${selected.rarity})`;
+      this.objective = `${selected.displayName} を装備。次 room でシナジーを試す。`;
+    }
+  }
+
   private resolvePlayerActions(actions: ActionState): void {
+    if (this.pendingReward) {
+      const selected = this.pendingReward.options[this.pendingReward.selectedIndex];
+      this.rewardLabel = this.pendingReward.options
+        .map((option, index) => `${index === this.pendingReward!.selectedIndex ? '>' : ' '} ${option.displayName}`)
+        .join(' | ');
+      this.objective = `Reward選択中: A/D で選択、E で取得 (${selected.displayName})`;
+      return;
+    }
+
     if (this.isRisingEdge(actions.primaryAttack, this.previousActions.primaryAttack)) {
       this.primaryAttack();
     }
@@ -128,7 +182,6 @@ export class CombatSandboxDirector {
 
   private primaryAttack(): void {
     if (this.enemies.length === 0) {
-      this.spawnWave();
       return;
     }
 
@@ -136,7 +189,7 @@ export class CombatSandboxDirector {
     const target = this.enemies[0];
     const overburnMultiplier = 1 + this.overburn / 150;
     target.health -= weapon.baseDamage * overburnMultiplier;
-    this.overburn = Math.min(MAX_OVERBURN, this.overburn + 9);
+    this.overburn = Math.min(MAX_OVERBURN, this.overburn + weapon.overburnGain);
 
     if (target.health <= 0) {
       this.enemies.shift();
@@ -162,6 +215,19 @@ export class CombatSandboxDirector {
       return;
     }
 
+    if (offhand.id === 'beacon-crucible') {
+      this.health = Math.min(MAX_HEALTH, this.health + 12);
+      this.objective = 'Beacon Crucible deployed: health stabilized and enemies lured.';
+      return;
+    }
+
+    if (offhand.id === 'siphon-engine') {
+      this.overburn = Math.min(MAX_OVERBURN, this.overburn + 18);
+      this.focus = Math.min(MAX_FOCUS, this.focus + 8);
+      this.objective = 'Siphon Engine converted target resources into combat momentum.';
+      return;
+    }
+
     this.overburn = Math.min(MAX_OVERBURN, this.overburn + 20);
     if (this.enemies.length > 0) {
       this.enemies[0].attackTimer = Math.max(0.5, this.enemies[0].attackTimer - 1);
@@ -172,8 +238,9 @@ export class CombatSandboxDirector {
   private rotateLoadoutAndMission(): void {
     this.weaponIndex = (this.weaponIndex + 1) % WEAPON_DEFS.length;
     this.offhandIndex = (this.offhandIndex + 1) % OFFHAND_DEFS.length;
+    this.sigilIndex = (this.sigilIndex + 1) % SIGIL_DEFS.length;
     this.missionIndex = (this.missionIndex + 1) % MISSION_TYPE_DEFS.length;
-    this.objective = `${MISSION_TYPE_DEFS[this.missionIndex].targetObjective} / Loadout: ${WEAPON_DEFS[this.weaponIndex].displayName} + ${OFFHAND_DEFS[this.offhandIndex].displayName}.`;
+    this.objective = `${MISSION_TYPE_DEFS[this.missionIndex].targetObjective} / Loadout: ${WEAPON_DEFS[this.weaponIndex].displayName} + ${OFFHAND_DEFS[this.offhandIndex].displayName} + ${SIGIL_DEFS[this.sigilIndex].displayName}.`;
   }
 
   private resolveEnemyPressure(deltaSeconds: number, actions: ActionState): void {
@@ -215,24 +282,44 @@ export class CombatSandboxDirector {
         this.overburn = Math.min(MAX_OVERBURN, this.overburn + 5);
       } else {
         this.health = Math.max(0, this.health - enemy.damage);
+        this.roomDamageTaken += enemy.damage;
       }
       enemy.attackTimer = enemy.attackInterval;
     }
 
     if (this.health <= 0) {
-      this.health = MAX_HEALTH;
-      this.guard = MAX_GUARD;
-      this.focus = MAX_FOCUS;
-      this.overburn = 0;
-      this.spawnWave();
-      this.objective = 'Pilgrim down. Simulation reset and wave restarted.';
+      this.resetAfterDown();
       return;
     }
 
     if (this.enemies.length === 0) {
-      this.spawnWave();
-      this.objective = 'Wave cleared. New enemy cluster entering the arena.';
+      this.advanceEncounterRoom();
     }
+  }
+
+  private advanceEncounterRoom(): void {
+    const clearSeconds = this.elapsedSeconds - this.roomStartSeconds;
+    const encounter = this.encounter.onRoomCleared(clearSeconds, this.roomDamageTaken >= 24);
+
+    this.pendingReward = this.rewards.rollChoices(3);
+    this.rewardLabel = `${encounter.biomeName} / ${encounter.progressLabel} / reward x${encounter.rewardWeight.toFixed(2)}`;
+    this.encounterLabel = `${encounter.progressLabel} (${encounter.roomTags.join(', ')})`;
+    this.objective = 'Wave cleared. Reward altar is active.';
+
+    this.roomStartSeconds = this.elapsedSeconds;
+    this.roomDamageTaken = 0;
+    this.spawnWave();
+  }
+
+  private resetAfterDown(): void {
+    this.health = MAX_HEALTH;
+    this.guard = MAX_GUARD;
+    this.focus = MAX_FOCUS;
+    this.overburn = 0;
+    this.roomStartSeconds = this.elapsedSeconds;
+    this.roomDamageTaken = 0;
+    this.spawnWave();
+    this.objective = 'Pilgrim down. Simulation reset and wave restarted.';
   }
 
   private createEnemy(
@@ -246,7 +333,6 @@ export class CombatSandboxDirector {
   ): SandboxEnemy {
     return {
       key: `${archetypeId}-${this.enemySerial++}`,
-      archetypeId,
       label,
       health,
       damage,
