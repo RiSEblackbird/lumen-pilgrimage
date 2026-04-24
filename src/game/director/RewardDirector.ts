@@ -9,6 +9,13 @@ export class RewardDirector {
   private relicCursor = 0;
   private readonly unlockedRelics = new Set<string>();
 
+  setEquippedRelics(relicIds: readonly string[]): void {
+    this.unlockedRelics.clear();
+    for (const relicId of relicIds) {
+      this.unlockedRelics.add(relicId);
+    }
+  }
+
   rollChoices(choiceCount: number): RewardChoiceState {
     const options: RelicDef[] = [];
     let attempts = 0;

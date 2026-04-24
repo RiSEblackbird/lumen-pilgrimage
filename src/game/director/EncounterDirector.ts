@@ -11,6 +11,7 @@ export interface EncounterSnapshot {
   readonly biomeName: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
+  readonly roomId: string;
   readonly roomName: string;
   readonly roomTags: readonly RoomTag[];
   readonly progressLabel: string;
@@ -41,6 +42,21 @@ export class EncounterDirector {
     this.missionRouteBias = routeBias;
   }
 
+  restoreExpedition(snapshot: {
+    readonly biomeId: string;
+    readonly sectorIndex: number;
+    readonly roomId: string;
+    readonly routeStyle: RouteStyle;
+  }): void {
+    this.biome = BIOME_ENCOUNTER_SETS.find((set) => set.biomeId === snapshot.biomeId) ?? BIOME_ENCOUNTER_SETS[0];
+    this.sectorIndex = Math.min(this.biome.sectors, Math.max(1, Math.floor(snapshot.sectorIndex)));
+    this.roomsClearedInSector = 0;
+    this.totalRoomsCleared = 0;
+    const roomExists = this.biome.rooms.some((room) => room.id === snapshot.roomId);
+    this.currentRoomId = roomExists ? snapshot.roomId : this.biome.startRoomId;
+    this.routeStyle = snapshot.routeStyle;
+  }
+
   onRoomCleared(clearTimeSeconds: number, tookHeavyDamage: boolean): EncounterSnapshot {
     const current = this.currentRoom();
     const paceBonus = clearTimeSeconds <= 35 ? 0.15 : 0;
@@ -65,6 +81,7 @@ export class EncounterDirector {
       biomeName: this.biome.displayName,
       sectorIndex: this.sectorIndex,
       sectorsTotal: this.biome.sectors,
+      roomId: room.id,
       roomName: room.displayName,
       roomTags: room.tags,
       progressLabel: `Sector ${this.sectorIndex}/${this.biome.sectors} · ${room.displayName} [${this.routeStyle}]`,

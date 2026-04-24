@@ -5,6 +5,7 @@ export interface ContinueSnapshot {
   readonly biomeId: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
+  readonly roomId: string;
   readonly roomLabel: string;
   readonly routeStyle: string;
   readonly missionName: string;
@@ -61,6 +62,7 @@ export class MenuManager {
       `State: ${this.state}`,
       `Continue: ${snapshot.biomeId} / Sector ${snapshot.sectorIndex}/${snapshot.sectorsTotal}`,
       `Room: ${snapshot.roomLabel} / Route ${snapshot.routeStyle}`,
+      `RoomID: ${snapshot.roomId || 'legacy-save'}`,
       `Mission: ${snapshot.missionName}`,
       `Vitals: HP ${snapshot.health.toFixed(0)} | Guard ${snapshot.guard.toFixed(0)} | Focus ${snapshot.focus.toFixed(0)} | Overburn ${snapshot.overburn.toFixed(0)}`,
       `Relics: ${relicSummary}`,
