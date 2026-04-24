@@ -9,7 +9,7 @@ import { SaveManager } from '../engine/save/SaveManager';
 import { PerfHud } from '../engine/debug/PerfHud';
 import { GameStateMachine } from '../game/state/GameStateMachine';
 import { HudManager } from '../game/ui/HudManager';
-import { MenuManager, type ContinueSnapshot, type MenuCommand } from '../game/ui/MenuManager';
+import { MenuManager, type ContinueSnapshot, type MenuCommand, type SettingsViewModel } from '../game/ui/MenuManager';
 import { VrWristUi } from '../game/ui/VrWristUi';
 import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
@@ -30,6 +30,7 @@ export class Game {
   private readonly vrUi = new VrWristUi();
   private readonly hubScene: PilgrimsBelfryScene;
   private readonly combatSandbox: CombatSandboxDirector;
+  private settingsViewModel: SettingsViewModel;
 
   private fpsAccumulator = 0;
   private fpsFrameCount = 0;
@@ -53,7 +54,8 @@ export class Game {
     this.hud = new HudManager(container);
     this.hubScene = new PilgrimsBelfryScene(this.scene);
 
-    this.settings.save(this.settings.load());
+    this.settingsViewModel = this.settings.load();
+    this.settings.save(this.settingsViewModel);
     const slot = this.saves.loadOrCreate(0, {
       state: 'Hub',
       unlockedBiomes: ['Ember Ossuary'],
@@ -62,6 +64,7 @@ export class Game {
     this.continueSnapshot = slot.expedition;
     this.combatSandbox = new CombatSandboxDirector(this.continueSnapshot);
     this.menu.setContinueSnapshot(this.continueSnapshot);
+    this.menu.setSettings(this.settingsViewModel);
 
     container.appendChild(this.renderer.domElement);
     container.appendChild(VRButton.createButton(this.renderer));
@@ -177,10 +180,53 @@ export class Game {
       return;
     }
 
-    if (command === 'open-settings') {
-      const current = this.settings.load();
-      this.settings.save(current);
+    if (command === 'open-settings' && this.states.canTransition('Settings')) {
+      this.states.transition('Settings');
+      return;
     }
+
+    if (command === 'toggle-snap-turn') {
+      this.updateSettings({ snapTurn: !this.settingsViewModel.snapTurn });
+      return;
+    }
+
+    if (command === 'toggle-seated-mode') {
+      this.updateSettings({ seatedMode: !this.settingsViewModel.seatedMode });
+      return;
+    }
+
+    if (command === 'toggle-reduce-flashing') {
+      this.updateSettings({ reduceFlashing: !this.settingsViewModel.reduceFlashing });
+      return;
+    }
+
+    if (command === 'master-volume-down') {
+      this.adjustMasterVolume(-0.05);
+      return;
+    }
+
+    if (command === 'master-volume-up') {
+      this.adjustMasterVolume(0.05);
+      return;
+    }
+
+    if (command === 'back-main-menu' && this.states.canTransition('MainMenu')) {
+      this.states.transition('MainMenu');
+    }
+  }
+
+  private updateSettings(partial: Partial<SettingsViewModel>): void {
+    this.settingsViewModel = {
+      ...this.settingsViewModel,
+      ...partial
+    };
+    this.settings.save(this.settingsViewModel);
+    this.menu.setSettings(this.settingsViewModel);
+  }
+
+  private adjustMasterVolume(delta: number): void {
+    const nextVolume = Math.max(0, Math.min(1, this.settingsViewModel.masterVolume + delta));
+    this.updateSettings({ masterVolume: nextVolume });
   }
 
   private startExpeditionFromContinue(): void {
