@@ -81,6 +81,18 @@ export class SaveManager {
     return updated;
   }
 
+  resetSlot(slotId: number, next: Omit<SaveSlot, 'slotId' | 'updatedAtIso'>): SaveSlot {
+    const reset: SaveSlot = {
+      slotId,
+      state: next.state,
+      unlockedBiomes: next.unlockedBiomes,
+      expedition: next.expedition,
+      updatedAtIso: new Date().toISOString()
+    };
+    this.save(reset);
+    return reset;
+  }
+
   private key(slotId: number): string {
     return `${this.keyPrefix}${slotId}`;
   }

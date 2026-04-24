@@ -57,8 +57,11 @@
 - `SaveManager` は expedition snapshot に `roomId` を含めて保存し、旧 save（roomId 未保存）を読み込む場合は空文字で互換復帰する。
 - `SaveManager` は expedition snapshot に `missionId` を含めて保存し、旧 save（missionId 未保存）は missionName 互換復帰を許容する。
 - `MenuManager` は `SaveManager` の expedition snapshot を読み、Hub の Continue 情報として biome/sector/room/vitals/relic を表示する。
+- `MenuManager` は MainMenu 専用コマンドキュー（continue/new-game/open-settings/open-credits）を公開し、`Game` が毎 tick で消費して遷移を決定する。
 - mission は `MissionTypes` でデータ駆動定義し、sandbox でローテーション表示しつつ route bias を EncounterDirector へ注入する。
 - `Game` は起動時に Continue snapshot を `CombatSandboxDirector` へ注入し、mission/room/vitals/relic を run 状態へ再適用する。
+- `Game` は起動直後に MainMenu で待機し、Continue / New Game の明示選択を受けるまで expedition 更新/自動保存を開始しない。
+- `SaveManager.resetSlot` は New Game の slot 初期化を担い、既存 continue snapshot を安全に破棄する。
 - `CombatSandboxDirector` は `boss-approach` room tag を検知すると biome 別 Warden stub（Bell of Cinders / The Thirteen-Eyed Pool）の phase readout を HUD 表示する。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 

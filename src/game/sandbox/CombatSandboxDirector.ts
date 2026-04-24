@@ -112,6 +112,46 @@ export class CombatSandboxDirector {
       openMenu: false
     };
 
+    this.resetForRun(snapshot);
+  }
+
+  resetForRun(snapshot: ContinueSnapshot | null): void {
+    this.enemies.splice(0, this.enemies.length);
+    this.enemySerial = 0;
+    this.health = MAX_HEALTH;
+    this.guard = MAX_GUARD;
+    this.focus = MAX_FOCUS;
+    this.overburn = 0;
+    this.weaponIndex = 0;
+    this.offhandIndex = 0;
+    this.sigilIndex = 0;
+    this.missionIndex = 0;
+    this.objective = MISSION_TYPE_DEFS[0].targetObjective;
+    this.pressureLabel = 'No active pressure budget';
+    this.rewardLabel = 'No reward pending';
+    this.pendingReward = null;
+    this.parryDamageBoostTimer = 0;
+    this.offhandGuardBoostTimer = 0;
+    this.roomStartSeconds = 0;
+    this.elapsedSeconds = 0;
+    this.roomDamageTaken = 0;
+    this.bossPhase = 0;
+    this.bossLabel = 'No Warden contact';
+    this.rewards.setEquippedRelics([]);
+    this.previousActions = {
+      moveForward: false,
+      moveBackward: false,
+      moveLeft: false,
+      moveRight: false,
+      dash: false,
+      primaryAttack: false,
+      guard: false,
+      parry: false,
+      offhand: false,
+      interact: false,
+      openMenu: false
+    };
+
     this.initializeFromSnapshot(snapshot);
     this.encounterLabel = this.latestEncounter.progressLabel;
     this.spawnWave();
