@@ -2,6 +2,7 @@ import { AmbientLight, BoxGeometry, Color, DirectionalLight, Mesh, MeshStandardM
 
 export class PilgrimsBelfryScene {
   private readonly arena: Mesh;
+  private reduceFlashing = false;
 
   constructor(private readonly scene: Scene) {
     this.scene.background = new Color(0x06080f);
@@ -20,6 +21,11 @@ export class PilgrimsBelfryScene {
   }
 
   tick(elapsedSeconds: number): void {
-    this.arena.rotation.y = elapsedSeconds * 0.25;
+    const speed = this.reduceFlashing ? 0.12 : 0.25;
+    this.arena.rotation.y = elapsedSeconds * speed;
+  }
+
+  setReduceFlashing(enabled: boolean): void {
+    this.reduceFlashing = enabled;
   }
 }

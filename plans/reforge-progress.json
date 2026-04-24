@@ -18,7 +18,6 @@
   "next_actions": [
     "replace boss stub readout with biome-specific multi-phase behavior contracts",
     "expand biome enemy families beyond Ember/Moon spawn tables",
-    "wire Settings values to runtime systems (audio mix, XR comfort, HUD scale)",
     "connect unlocked hub gear to actual loadout availability in CombatSandboxDirector"
   ],
   "smoke_commands": [

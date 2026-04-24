@@ -21,6 +21,7 @@ export interface HudSnapshot {
 
 export class HudManager {
   private readonly root: HTMLDivElement;
+  private uiScale = 1;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -35,6 +36,12 @@ export class HudManager {
     this.root.style.fontSize = '13px';
     this.root.style.lineHeight = '1.4';
     container.appendChild(this.root);
+  }
+
+  setUiScale(scale: number): void {
+    this.uiScale = scale;
+    this.root.style.transformOrigin = 'bottom right';
+    this.root.style.transform = `scale(${this.uiScale.toFixed(2)})`;
   }
 
   render(snapshot: HudSnapshot): void {

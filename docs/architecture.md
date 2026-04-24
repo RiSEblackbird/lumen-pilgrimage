@@ -58,8 +58,8 @@
 - `SaveManager` は expedition snapshot に `missionId` を含めて保存し、旧 save（missionId 未保存）は missionName 互換復帰を許容する。
 - `MenuManager` は `SaveManager` の expedition snapshot を読み、Hub の Continue 情報として biome/sector/room/vitals/relic を表示する。
 - `MenuManager` は MainMenu/Hub/MetaUpgrade コマンドキュー（continue/new-game/enter-hub/launch-expedition/unlock/craft/open-settings/open-credits）を公開し、`Game` が毎 tick で消費して遷移を決定する。
-- `MenuManager` は MainMenu / Settings / Credits の各パネルを描画し、settings 操作用コマンド（toggle/volume/back）を `Game` へ通知する。
-- `Game` は Settings 変更を `SettingsStore` へ即時保存し、MainMenu へ戻る導線を state machine で保証する。
+- `MenuManager` は MainMenu / Settings / Credits の各パネルを描画し、settings 操作用コマンド（toggle/ui-scale/volume/back）を `Game` へ通知する。
+- `Game` は Settings 変更を `SettingsStore` へ即時保存し、UI scale（Menu/HUD/PerfHud）・AudioListener master volume・XR comfort 表示・hub の reduce flashing 挙動へ反映する。
 - `Game` は Hub で `MetaUpgrade` へ遷移し、unlock/craft コマンドを `SaveManager.updateMetaProgress` へ接続して保存値を更新する。
 - mission は `MissionTypes` でデータ駆動定義し、sandbox でローテーション表示しつつ route bias を EncounterDirector へ注入する。
 - `Game` は起動時に Continue snapshot を `CombatSandboxDirector` へ注入し、mission/room/vitals/relic を run 状態へ再適用する。

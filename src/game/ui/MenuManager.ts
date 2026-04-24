@@ -51,6 +51,8 @@ export type MenuCommand =
   | 'toggle-snap-turn'
   | 'toggle-seated-mode'
   | 'toggle-reduce-flashing'
+  | 'ui-scale-down'
+  | 'ui-scale-up'
   | 'master-volume-down'
   | 'master-volume-up'
   | 'back-main-menu'
@@ -63,6 +65,7 @@ export class MenuManager {
   private continueSnapshot: ContinueSnapshot | null = null;
   private settings: SettingsViewModel | null = null;
   private hub: HubViewModel | null = null;
+  private uiScale = 1;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -96,6 +99,12 @@ export class MenuManager {
   setHub(hub: HubViewModel): void {
     this.hub = hub;
     this.render();
+  }
+
+  setUiScale(scale: number): void {
+    this.uiScale = scale;
+    this.root.style.transformOrigin = 'top left';
+    this.root.style.transform = `scale(${this.uiScale.toFixed(2)})`;
   }
 
   consumeCommand(): MenuCommand | null {
@@ -281,6 +290,14 @@ export class MenuManager {
     panel.append(this.createCommandButton('Toggle Seated Mode', 'toggle-seated-mode'));
     panel.append(this.createInfoLabel(`Reduce Flashing: ${settings.reduceFlashing ? 'ON' : 'OFF'}`));
     panel.append(this.createCommandButton('Toggle Reduce Flashing', 'toggle-reduce-flashing'));
+    panel.append(this.createInfoLabel(`UI Scale: ${(settings.uiScale * 100).toFixed(0)}%`));
+    const scaleRow = document.createElement('div');
+    scaleRow.style.display = 'grid';
+    scaleRow.style.gridTemplateColumns = '1fr 1fr';
+    scaleRow.style.gap = '8px';
+    scaleRow.append(this.createCommandButton('Scale -', 'ui-scale-down'));
+    scaleRow.append(this.createCommandButton('Scale +', 'ui-scale-up'));
+    panel.append(scaleRow);
     panel.append(this.createInfoLabel(`Master Volume: ${Math.round(settings.masterVolume * 100)}%`));
 
     const volumeRow = document.createElement('div');

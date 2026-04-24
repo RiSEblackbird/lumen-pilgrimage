@@ -1,5 +1,6 @@
 export class PerfHud {
   private readonly element: HTMLDivElement;
+  private uiScale = 1;
 
   constructor(container: HTMLElement) {
     this.element = document.createElement('div');
@@ -13,6 +14,12 @@ export class PerfHud {
     this.element.style.color = '#a7ffd8';
     this.element.style.pointerEvents = 'none';
     container.appendChild(this.element);
+  }
+
+  setUiScale(scale: number): void {
+    this.uiScale = scale;
+    this.element.style.transformOrigin = 'bottom left';
+    this.element.style.transform = `scale(${this.uiScale.toFixed(2)})`;
   }
 
   render(fps: number, stateLabel: string): void {

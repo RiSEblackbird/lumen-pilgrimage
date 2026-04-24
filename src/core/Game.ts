@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
+import { AudioListener, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { DEFAULT_GAME_CONFIG } from './GameConfig';
 import { GameLoop } from './GameLoop';
@@ -18,6 +18,7 @@ export class Game {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+  private readonly audioListener = new AudioListener();
   private readonly loop = new GameLoop();
   private readonly states = new GameStateMachine();
   private readonly desktopInput: DesktopActionAdapter;
@@ -47,6 +48,7 @@ export class Game {
     this.renderer.xr.setReferenceSpaceType('local-floor');
 
     this.camera.position.copy(new Vector3(0, 1.65, 3.5));
+    this.camera.add(this.audioListener);
 
     this.desktopInput = new DesktopActionAdapter(window);
     this.xrInput = new XRActionAdapter(this.renderer);
@@ -70,6 +72,7 @@ export class Game {
     this.menu.setContinueSnapshot(this.continueSnapshot);
     this.menu.setSettings(this.settingsViewModel);
     this.menu.setHub(this.hubViewModel);
+    this.applyRuntimeSettings();
 
     container.appendChild(this.renderer.domElement);
     container.appendChild(VRButton.createButton(this.renderer));
@@ -237,6 +240,16 @@ export class Game {
       return;
     }
 
+    if (command === 'ui-scale-down') {
+      this.adjustUiScale(-0.1);
+      return;
+    }
+
+    if (command === 'ui-scale-up') {
+      this.adjustUiScale(0.1);
+      return;
+    }
+
     if (command === 'master-volume-down') {
       this.adjustMasterVolume(-0.05);
       return;
@@ -259,6 +272,25 @@ export class Game {
     };
     this.settings.save(this.settingsViewModel);
     this.menu.setSettings(this.settingsViewModel);
+    this.applyRuntimeSettings();
+  }
+
+  private applyRuntimeSettings(): void {
+    this.menu.setUiScale(this.settingsViewModel.uiScale);
+    this.hud.setUiScale(this.settingsViewModel.uiScale);
+    this.perfHud.setUiScale(this.settingsViewModel.uiScale);
+    this.audioListener.setMasterVolume(this.settingsViewModel.masterVolume);
+    this.xrInput.setComfort({
+      snapTurn: this.settingsViewModel.snapTurn,
+      seatedMode: this.settingsViewModel.seatedMode
+    });
+    this.hubScene.setReduceFlashing(this.settingsViewModel.reduceFlashing);
+    this.vrUi.applySettings(this.xrInput.getComfortStatus(), this.settingsViewModel.masterVolume);
+  }
+
+  private adjustUiScale(delta: number): void {
+    const nextScale = Math.max(0.8, Math.min(1.4, this.settingsViewModel.uiScale + delta));
+    this.updateSettings({ uiScale: Number(nextScale.toFixed(2)) });
   }
 
   private adjustMasterVolume(delta: number): void {
