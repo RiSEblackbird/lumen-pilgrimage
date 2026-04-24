@@ -66,6 +66,7 @@ export interface CombatSandboxSnapshot {
   readonly encounterLabel: string;
   readonly contractLabel: string;
   readonly bossLabel: string;
+  readonly loadoutPoolLabel: string;
 }
 
 const MAX_HEALTH = 100;
@@ -105,6 +106,7 @@ export class CombatSandboxDirector {
   private previousActions: ActionState;
   private bossPhase = 0;
   private bossLabel = 'No Warden contact';
+  private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
 
   constructor(snapshot: ContinueSnapshot | null = null) {
     this.previousActions = {
@@ -131,6 +133,7 @@ export class CombatSandboxDirector {
     this.weaponIndex = this.coerceIndex(this.weaponIndex, this.availableWeaponIndices);
     this.offhandIndex = this.coerceIndex(this.offhandIndex, this.availableOffhandIndices);
     this.sigilIndex = this.coerceIndex(this.sigilIndex, this.availableSigilIndices);
+    this.refreshLoadoutPoolLabel();
   }
 
   resetForRun(snapshot: ContinueSnapshot | null): void {
@@ -201,7 +204,8 @@ export class CombatSandboxDirector {
       equippedRelics: this.rewards.getEquippedRelics(),
       encounterLabel: this.encounterLabel,
       contractLabel: this.getContractLabel(),
-      bossLabel: this.bossLabel
+      bossLabel: this.bossLabel,
+      loadoutPoolLabel: this.loadoutPoolLabel
     };
   }
 
@@ -619,6 +623,10 @@ export class CombatSandboxDirector {
       return allowedIndices[0];
     }
     return allowedIndices[(currentPosition + 1) % allowedIndices.length];
+  }
+
+  private refreshLoadoutPoolLabel(): void {
+    this.loadoutPoolLabel = `Loadout Pool W ${this.availableWeaponIndices.length}/${WEAPON_DEFS.length} | O ${this.availableOffhandIndices.length}/${OFFHAND_DEFS.length} | S ${this.availableSigilIndices.length}/${SIGIL_DEFS.length}`;
   }
 
   private resolveRouteStyle(routeStyle: string): RouteStyle {

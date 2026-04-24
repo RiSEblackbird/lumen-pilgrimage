@@ -33,7 +33,9 @@ npm run check
 - Settings の実ランタイム反映（UI scale: HUD/Menu/PerfHud、master volume: AudioListener、XR comfort: wrist UI 表示、reduce flashing: hub scene motion）
 - Credits パネルと MainMenu 復帰導線
 - Hub パネルで恒久通貨（Lumen Ash / Choir Thread / Saint Glass / Echo Script）と unlock 状態を表示
+- Hub パネルで loadout 候補の解放済み/未解放一覧（Weapons / Offhands / Sigils）を表示し、出撃前に unlock 影響を確認可能
 - MetaUpgrade で Astral Pike unlock / Beacon Crucible craft の保存連動プレースホルダ
+- HUD に loadout pool（解放数/総数）を常時表示し、run 中の装備循環候補を可視化
 - combat sandbox (`CombatSandboxDirector`)
   - 主武器 4 種（Prism Blade / Censer Carbine / Astral Pike / Thurible Chain）
   - 副手段 4 種（Ward Aegis / Grasp Tether / Beacon Crucible / Siphon Engine）

@@ -58,6 +58,7 @@
 - `SaveManager` は expedition snapshot に `missionId` を含めて保存し、旧 save（missionId 未保存）は missionName 互換復帰を許容する。
 - `MenuManager` は `SaveManager` の expedition snapshot を読み、Hub の Continue 情報として biome/sector/room/vitals/relic を表示する。
 - `MenuManager` は MainMenu/Hub/MetaUpgrade コマンドキュー（continue/new-game/enter-hub/launch-expedition/unlock/craft/open-settings/open-credits）を公開し、`Game` が毎 tick で消費して遷移を決定する。
+- `MenuManager` は Hub で Weapons/Offhands/Sigils の解放済み・未解放を定義全体と比較して表示し、MetaUpgrade の unlock 反映を出撃前に確認できる。
 - `MenuManager` は MainMenu / Settings / Credits の各パネルを描画し、settings 操作用コマンド（toggle/ui-scale/volume/back）を `Game` へ通知する。
 - `Game` は Settings 変更を `SettingsStore` へ即時保存し、UI scale（Menu/HUD/PerfHud）・AudioListener master volume・XR comfort 表示・hub の reduce flashing 挙動へ反映する。
 - `Game` は Hub で `MetaUpgrade` へ遷移し、unlock/craft コマンドを `SaveManager.updateMetaProgress` へ接続して保存値を更新する。
@@ -67,6 +68,7 @@
 - `SaveManager` は `metaProgress`（通貨 + unlock 状態）を save slot に保存し、旧 save 互換として `metaProgress` 欠落時は default 値を補完する。
 - `SaveManager.resetSlot` は New Game の slot 初期化を担い、既存 continue snapshot と meta progression を安全に再生成する。
 - `CombatSandboxDirector` は `boss-approach` room tag を検知すると biome 別 Warden stub（Bell of Cinders / The Thirteen-Eyed Pool）の phase readout を HUD 表示する。
+- `CombatSandboxDirector` は loadout availability から pool 数（W/O/S の解放数/総数）を算出し、HUD へ表示する。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 
 ## 拡張ポイント

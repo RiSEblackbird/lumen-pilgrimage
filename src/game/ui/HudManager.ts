@@ -17,6 +17,7 @@ export interface HudSnapshot {
   readonly encounterLabel: string;
   readonly contractLabel: string;
   readonly bossLabel: string;
+  readonly loadoutPoolLabel: string;
 }
 
 export class HudManager {
@@ -59,6 +60,7 @@ export class HudManager {
       `Pressure: ${snapshot.pressureLabel}`,
       `Encounter: ${snapshot.encounterLabel}`,
       `Boss: ${snapshot.bossLabel}`,
+      snapshot.loadoutPoolLabel,
       `Reward: ${snapshot.rewardLabel}`,
       `Relics: ${relicSummary}`,
       `Objective: ${snapshot.objective}`
