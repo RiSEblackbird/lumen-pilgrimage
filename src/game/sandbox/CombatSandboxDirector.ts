@@ -11,6 +11,12 @@ import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 import type { ContinueSnapshot } from '../ui/MenuManager';
 
+export interface LoadoutAvailability {
+  readonly unlockedWeapons: readonly string[];
+  readonly unlockedOffhands: readonly string[];
+  readonly unlockedSigils: readonly string[];
+}
+
 export interface CombatPersistenceSnapshot {
   readonly biomeId: string;
   readonly missionId: string;
@@ -82,6 +88,9 @@ export class CombatSandboxDirector {
   private weaponIndex = 0;
   private offhandIndex = 0;
   private sigilIndex = 0;
+  private availableWeaponIndices: number[] = [0];
+  private availableOffhandIndices: number[] = [0];
+  private availableSigilIndices: number[] = [0];
   private missionIndex = 0;
   private objective = MISSION_TYPE_DEFS[0].targetObjective;
   private pressureLabel = 'No active pressure budget';
@@ -113,6 +122,15 @@ export class CombatSandboxDirector {
     };
 
     this.resetForRun(snapshot);
+  }
+
+  configureLoadoutAvailability(availability: LoadoutAvailability): void {
+    this.availableWeaponIndices = this.resolveAvailableIndices(WEAPON_DEFS, availability.unlockedWeapons, 0);
+    this.availableOffhandIndices = this.resolveAvailableIndices(OFFHAND_DEFS, availability.unlockedOffhands, 0);
+    this.availableSigilIndices = this.resolveAvailableIndices(SIGIL_DEFS, availability.unlockedSigils, 0);
+    this.weaponIndex = this.coerceIndex(this.weaponIndex, this.availableWeaponIndices);
+    this.offhandIndex = this.coerceIndex(this.offhandIndex, this.availableOffhandIndices);
+    this.sigilIndex = this.coerceIndex(this.sigilIndex, this.availableSigilIndices);
   }
 
   resetForRun(snapshot: ContinueSnapshot | null): void {
@@ -343,9 +361,9 @@ export class CombatSandboxDirector {
   }
 
   private rotateLoadoutAndMission(): void {
-    this.weaponIndex = (this.weaponIndex + 1) % WEAPON_DEFS.length;
-    this.offhandIndex = (this.offhandIndex + 1) % OFFHAND_DEFS.length;
-    this.sigilIndex = (this.sigilIndex + 1) % SIGIL_DEFS.length;
+    this.weaponIndex = this.rotateIndex(this.weaponIndex, this.availableWeaponIndices);
+    this.offhandIndex = this.rotateIndex(this.offhandIndex, this.availableOffhandIndices);
+    this.sigilIndex = this.rotateIndex(this.sigilIndex, this.availableSigilIndices);
     this.missionIndex = (this.missionIndex + 1) % MISSION_TYPE_DEFS.length;
     this.encounter.setMissionRouteBias(MISSION_TYPE_DEFS[this.missionIndex].routeBias);
     this.objective = `${MISSION_TYPE_DEFS[this.missionIndex].targetObjective} / Loadout: ${WEAPON_DEFS[this.weaponIndex].displayName} + ${OFFHAND_DEFS[this.offhandIndex].displayName} + ${SIGIL_DEFS[this.sigilIndex].displayName}.`;
@@ -577,6 +595,30 @@ export class CombatSandboxDirector {
     }
 
     return 0;
+  }
+
+  private resolveAvailableIndices<T extends { readonly id: string }>(
+    defs: readonly T[],
+    unlockedIds: readonly string[],
+    fallbackIndex: number
+  ): number[] {
+    const unlocked = defs
+      .map((def, index) => ({ id: def.id, index }))
+      .filter((entry) => unlockedIds.includes(entry.id))
+      .map((entry) => entry.index);
+    return unlocked.length > 0 ? unlocked : [fallbackIndex];
+  }
+
+  private coerceIndex(currentIndex: number, allowedIndices: readonly number[]): number {
+    return allowedIndices.includes(currentIndex) ? currentIndex : allowedIndices[0];
+  }
+
+  private rotateIndex(currentIndex: number, allowedIndices: readonly number[]): number {
+    const currentPosition = allowedIndices.indexOf(currentIndex);
+    if (currentPosition < 0) {
+      return allowedIndices[0];
+    }
+    return allowedIndices[(currentPosition + 1) % allowedIndices.length];
   }
 
   private resolveRouteStyle(routeStyle: string): RouteStyle {
