@@ -18,7 +18,7 @@
     "replace boss stub readout with biome-specific multi-phase behavior contracts",
     "add hub-side unlock/craft placeholder panels tied to saved currencies",
     "expand biome enemy families beyond Ember/Moon spawn tables",
-    "add dedicated settings/credits scene flow from MainMenu commands"
+    "wire Settings values to runtime systems (audio mix, XR comfort, HUD scale)"
   ],
   "smoke_commands": [
     "npm run typecheck",
@@ -28,6 +28,6 @@
   "risks": [
     "boss implementation is currently HUD stub only; no boss rule mutation/AI state exists yet",
     "encounter data currently covers only Ember Ossuary and Moon Reservoir",
-    "settings/credits は MainMenu コマンドのみで、専用シーン遷移と復帰フローは未実装"
+    "Settings 値は保存できるが、audio mix / XR comfort / HUD scale への実ランタイム反映は未接続"
   ]
 }
