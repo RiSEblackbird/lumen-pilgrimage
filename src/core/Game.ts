@@ -8,6 +8,9 @@ import { SettingsStore } from '../engine/save/SettingsStore';
 import { DEFAULT_META_PROGRESS, SaveManager, type MetaProgress } from '../engine/save/SaveManager';
 import { PerfHud } from '../engine/debug/PerfHud';
 import { GameStateMachine } from '../game/state/GameStateMachine';
+import { CampaignState } from '../game/state/CampaignState';
+import { ExpeditionState } from '../game/state/ExpeditionState';
+import { MetaProgressionState } from '../game/state/MetaProgressionState';
 import { HudManager } from '../game/ui/HudManager';
 import { MenuManager, type ContinueSnapshot, type HubViewModel, type MenuCommand, type SettingsViewModel } from '../game/ui/MenuManager';
 import { VrWristUi } from '../game/ui/VrWristUi';
@@ -39,6 +42,9 @@ export class Game {
   private continueSnapshot: ContinueSnapshot | null = null;
   private hubViewModel: HubViewModel;
   private runActive = false;
+  private readonly campaignState: CampaignState;
+  private readonly expeditionState = new ExpeditionState();
+  private readonly metaState: MetaProgressionState;
 
   constructor(container: HTMLElement) {
     this.renderer = new WebGLRenderer({ antialias: true });
@@ -67,6 +73,9 @@ export class Game {
     });
     this.continueSnapshot = slot.expedition;
     this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
+    this.campaignState = new CampaignState(slot.unlockedBiomes);
+    this.metaState = new MetaProgressionState(slot.metaProgress);
+    this.expeditionState.restoreFromContinue(slot.expedition);
 
     this.combatSandbox = new CombatSandboxDirector(this.continueSnapshot);
     this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
@@ -79,6 +88,7 @@ export class Game {
     container.appendChild(VRButton.createButton(this.renderer));
 
     this.states.transition('MainMenu');
+    this.persistCurrentState();
     this.menu.setState(this.states.current);
 
     window.addEventListener('resize', () => this.onResize());
@@ -104,7 +114,7 @@ export class Game {
           guard: 100,
           focus: 100,
           overburn: 0,
-          objective: 'Main Menu/HUB で導線を選択',
+          objective: this.campaignState.getSnapshot().currentObjective,
           weaponName: '-',
           offhandName: '-',
           sigilName: '-',
@@ -118,7 +128,7 @@ export class Game {
           encounterLabel: 'Awaiting expedition launch',
           contractLabel: 'No contract',
           bossLabel: 'No Warden contact',
-          loadoutPoolLabel: `Loadout Pool W ${this.hubViewModel.unlockedWeapons.length}/4 | O ${this.hubViewModel.unlockedOffhands.length}/4 | S ${this.hubViewModel.unlockedSigils.length}/12`
+          loadoutPoolLabel: this.metaState.toLoadoutPoolLabel()
         });
         this.menu.setState(this.states.current);
         return;
@@ -140,6 +150,7 @@ export class Game {
       if (this.saveAccumulator >= 1) {
         this.saveAccumulator = 0;
         const snapshot = this.combatSandbox.getPersistenceSnapshot();
+        this.expeditionState.syncFromPersistence(snapshot);
         const updated = this.saves.updateExpedition(0, {
           biomeId: snapshot.biomeId,
           missionId: snapshot.missionId,
@@ -159,6 +170,8 @@ export class Game {
         });
         if (updated) {
           this.continueSnapshot = updated.expedition;
+          this.campaignState.replaceUnlockedBiomes(updated.unlockedBiomes);
+          this.metaState.replace(updated.metaProgress);
           this.hubViewModel = this.toHubViewModel(updated.unlockedBiomes, updated.metaProgress);
           this.menu.setContinueSnapshot(this.continueSnapshot);
           this.menu.setHub(this.hubViewModel);
@@ -194,11 +207,13 @@ export class Game {
   private handleMetaMenu(command: Exclude<MenuCommand, 'continue' | 'new-game' | 'launch-expedition'>): void {
     if (command === 'enter-hub' && this.states.canTransition('Hub')) {
       this.states.transition('Hub');
+      this.persistCurrentState();
       return;
     }
 
     if (command === 'open-meta-upgrade' && this.states.current === 'Hub' && this.states.canTransition('MetaUpgrade')) {
       this.states.transition('MetaUpgrade');
+      this.persistCurrentState();
       return;
     }
 
@@ -214,16 +229,19 @@ export class Game {
 
     if (command === 'back-hub' && this.states.canTransition('Hub')) {
       this.states.transition('Hub');
+      this.persistCurrentState();
       return;
     }
 
     if (command === 'open-credits' && this.states.canTransition('Credits')) {
       this.states.transition('Credits');
+      this.persistCurrentState();
       return;
     }
 
     if (command === 'open-settings' && this.states.canTransition('Settings')) {
       this.states.transition('Settings');
+      this.persistCurrentState();
       return;
     }
 
@@ -264,6 +282,7 @@ export class Game {
 
     if (command === 'back-main-menu' && this.states.canTransition('MainMenu')) {
       this.states.transition('MainMenu');
+      this.persistCurrentState();
     }
   }
 
@@ -306,17 +325,21 @@ export class Game {
     }
 
     this.combatSandbox.resetForRun(this.continueSnapshot);
+    this.expeditionState.restoreFromContinue(this.continueSnapshot);
     this.enterRunStates();
   }
 
   private startExpeditionFromHub(): void {
     this.combatSandbox.resetForRun(this.continueSnapshot);
+    this.expeditionState.beginFreshRun('Ember Ossuary');
     this.runActive = true;
     if (this.states.current === 'Hub' && this.states.canTransition('ExpeditionPrep')) {
       this.states.transition('ExpeditionPrep');
+      this.persistCurrentState();
     }
     if (this.states.current === 'ExpeditionPrep' && this.states.canTransition('InExpedition')) {
       this.states.transition('InExpedition');
+      this.persistCurrentState();
     }
   }
 
@@ -328,6 +351,9 @@ export class Game {
       metaProgress: DEFAULT_META_PROGRESS
     });
     this.continueSnapshot = slot.expedition;
+    this.campaignState.replaceUnlockedBiomes(slot.unlockedBiomes);
+    this.metaState.replace(slot.metaProgress);
+    this.expeditionState.reset();
     this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
     this.menu.setContinueSnapshot(this.continueSnapshot);
     this.menu.setHub(this.hubViewModel);
@@ -336,6 +362,7 @@ export class Game {
     this.runActive = false;
     if (this.states.canTransition('Hub')) {
       this.states.transition('Hub');
+      this.persistCurrentState();
     }
   }
 
@@ -372,6 +399,8 @@ export class Game {
       return;
     }
     this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
+    this.campaignState.replaceUnlockedBiomes(slot.unlockedBiomes);
+    this.metaState.replace(slot.metaProgress);
     this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
     this.menu.setHub(this.hubViewModel);
   }
@@ -393,13 +422,20 @@ export class Game {
     this.runActive = true;
     if (this.states.current === 'MainMenu') {
       this.states.transition('Hub');
+      this.persistCurrentState();
     }
     if (this.states.current === 'Hub') {
       this.states.transition('ExpeditionPrep');
+      this.persistCurrentState();
     }
     if (this.states.current === 'ExpeditionPrep') {
       this.states.transition('InExpedition');
+      this.persistCurrentState();
     }
+  }
+
+  private persistCurrentState(): void {
+    this.saves.updateState(0, this.states.current);
   }
 
   private updateDebug(deltaSeconds: number): void {

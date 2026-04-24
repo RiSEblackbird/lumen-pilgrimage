@@ -118,6 +118,21 @@ export class SaveManager {
     return updated;
   }
 
+  updateState(slotId: number, state: GameState): SaveSlot | null {
+    const current = this.load(slotId);
+    if (!current) {
+      return null;
+    }
+
+    const updated: SaveSlot = {
+      ...current,
+      state,
+      updatedAtIso: new Date().toISOString()
+    };
+    this.save(updated);
+    return updated;
+  }
+
   resetSlot(slotId: number, next: Omit<SaveSlot, 'slotId' | 'updatedAtIso'>): SaveSlot {
     const reset: SaveSlot = {
       slotId,
@@ -311,6 +326,7 @@ export class SaveManager {
       [
         'Boot',
         'MainMenu',
+        'Settings',
         'Hub',
         'ExpeditionPrep',
         'InExpedition',
