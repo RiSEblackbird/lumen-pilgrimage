@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 2 の第2スライスとして、Hub の戦闘サンドボックスで guard/parry/telegraph 読み合いを確認できる状態です。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 3 の基盤段階として、Hub の戦闘サンドボックスで guard/parry/telegraph に加え enemy coordinator による圧制御と mission variety を確認できる状態です。
 
 ## セットアップ
 
@@ -17,7 +17,7 @@ npm run build
 npm run check
 ```
 
-## 現在の実装範囲（Phase 1 + Phase 2 slice2）
+## 現在の実装範囲（Phase 1〜Phase 3 基盤）
 
 - 新エントリ: `AppBootstrap` → `Game`
 - state machine（Boot〜EndlessCollapse）
@@ -32,6 +32,8 @@ npm run check
   - 仮敵 3 種（Ash Mote / Candle Penitent / Furnace Thurifer）
   - guard / parry 分離
   - telegraph 読み合い + stagger リワード
+  - enemy coordinator（melee token / ranged budget）
+  - mission 8系統ローテーション表示（Purge Nest 〜 Echo Rescue）
 
 ## サンドボックス操作（flat-screen）
 
@@ -67,6 +69,10 @@ src/
     state/
       GameState.ts
       GameStateMachine.ts
+    director/
+      EnemyCoordinator.ts
+    encounters/
+      MissionTypes.ts
     items/
       WeaponDefs.ts
       OffhandDefs.ts
@@ -83,4 +89,4 @@ src/
 
 ## 次フェーズ方針
 
-Phase 2 継続として、tutorial room、hit reaction / damage-stagger の本番分離、敵 archetype 別 telegraph と遭遇型の拡張を進めます。
+Phase 3 継続として、EncounterDirector と room ルールセット、reward selection、relic 初版、overburn の本番係数へ拡張します。
