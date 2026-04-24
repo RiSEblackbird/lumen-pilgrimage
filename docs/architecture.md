@@ -58,6 +58,8 @@
 - `SaveManager` は expedition snapshot に `missionId` を含めて保存し、旧 save（missionId 未保存）は missionName 互換復帰を許容する。
 - `MenuManager` は `SaveManager` の expedition snapshot を読み、Hub の Continue 情報として biome/sector/room/vitals/relic を表示する。
 - `MenuManager` は MainMenu 専用コマンドキュー（continue/new-game/open-settings/open-credits）を公開し、`Game` が毎 tick で消費して遷移を決定する。
+- `MenuManager` は MainMenu / Settings / Credits の各パネルを描画し、settings 操作用コマンド（toggle/volume/back）を `Game` へ通知する。
+- `Game` は Settings 変更を `SettingsStore` へ即時保存し、MainMenu へ戻る導線を state machine で保証する。
 - mission は `MissionTypes` でデータ駆動定義し、sandbox でローテーション表示しつつ route bias を EncounterDirector へ注入する。
 - `Game` は起動時に Continue snapshot を `CombatSandboxDirector` へ注入し、mission/room/vitals/relic を run 状態へ再適用する。
 - `Game` は起動直後に MainMenu で待機し、Continue / New Game の明示選択を受けるまで expedition 更新/自動保存を開始しない。

@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room の Warden stub HUD readout を確認できる状態です。加えて MainMenu で Continue / New Game を明示選択する起動分岐を導入しました。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room の Warden stub HUD readout を確認できる状態です。加えて MainMenu で Continue / New Game の起動分岐、Settings / Credits の専用パネル遷移を導入しました。
 
 ## セットアップ
 
@@ -29,6 +29,8 @@ npm run check
 - MainMenu コマンド UI（Continue / New Game / Settings / Credits）と command queue
 - run 開始の明示分岐（起動直後は MainMenu 待機、選択後に InExpedition へ遷移）
 - New Game 時の slot reset と sandbox 初期化
+- Settings パネル（snap turn / seated mode / reduce flashing / master volume）と保存
+- Credits パネルと MainMenu 復帰導線
 - combat sandbox (`CombatSandboxDirector`)
   - 主武器 4 種（Prism Blade / Censer Carbine / Astral Pike / Thurible Chain）
   - 副手段 4 種（Ward Aegis / Grasp Tether / Beacon Crucible / Siphon Engine）
@@ -102,4 +104,4 @@ src/
 
 ## 次フェーズ方針
 
-Phase 4 継続として、Hub 恒久成長 UI、Ember/Moon boss の本戦挙動、settings/credits の専用シーン遷移を実装します。
+Phase 4 継続として、Hub 恒久成長 UI、Ember/Moon boss の本戦挙動、Settings 値の実ランタイム反映（音量/UI スケール/快適性設定）を実装します。

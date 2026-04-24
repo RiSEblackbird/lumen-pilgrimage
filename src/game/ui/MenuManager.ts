@@ -19,13 +19,32 @@ export interface ContinueSnapshot {
   readonly capturedAtIso: string;
 }
 
-export type MenuCommand = 'continue' | 'new-game' | 'open-settings' | 'open-credits';
+export interface SettingsViewModel {
+  readonly snapTurn: boolean;
+  readonly seatedMode: boolean;
+  readonly uiScale: number;
+  readonly reduceFlashing: boolean;
+  readonly masterVolume: number;
+}
+
+export type MenuCommand =
+  | 'continue'
+  | 'new-game'
+  | 'open-settings'
+  | 'open-credits'
+  | 'toggle-snap-turn'
+  | 'toggle-seated-mode'
+  | 'toggle-reduce-flashing'
+  | 'master-volume-down'
+  | 'master-volume-up'
+  | 'back-main-menu';
 
 export class MenuManager {
   private readonly root: HTMLDivElement;
   private readonly commandQueue: MenuCommand[] = [];
   private state: GameState = 'Boot';
   private continueSnapshot: ContinueSnapshot | null = null;
+  private settings: SettingsViewModel | null = null;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -51,6 +70,11 @@ export class MenuManager {
     this.render();
   }
 
+  setSettings(settings: SettingsViewModel): void {
+    this.settings = settings;
+    this.render();
+  }
+
   consumeCommand(): MenuCommand | null {
     return this.commandQueue.shift() ?? null;
   }
@@ -60,6 +84,18 @@ export class MenuManager {
     if (this.state === 'MainMenu') {
       this.root.innerHTML = '';
       this.root.append(this.createMainMenu(snapshot));
+      return;
+    }
+
+    if (this.state === 'Settings') {
+      this.root.innerHTML = '';
+      this.root.append(this.createSettingsPanel());
+      return;
+    }
+
+    if (this.state === 'Credits') {
+      this.root.innerHTML = '';
+      this.root.append(this.createCreditsPanel());
       return;
     }
 
@@ -121,6 +157,71 @@ export class MenuManager {
     panel.append(this.createCommandButton('Settings', 'open-settings'));
     panel.append(this.createCommandButton('Credits', 'open-credits'));
     return panel;
+  }
+
+  private createSettingsPanel(): HTMLElement {
+    const panel = document.createElement('div');
+    panel.style.display = 'grid';
+    panel.style.gap = '8px';
+    panel.style.minWidth = '280px';
+
+    const title = document.createElement('div');
+    title.textContent = 'Settings';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '700';
+    panel.append(title);
+
+    const settings = this.settings;
+    if (!settings) {
+      panel.append(this.createInfoLabel('Settings unavailable'));
+      panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+      return panel;
+    }
+
+    panel.append(this.createInfoLabel(`Snap Turn: ${settings.snapTurn ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Snap Turn', 'toggle-snap-turn'));
+    panel.append(this.createInfoLabel(`Seated Mode: ${settings.seatedMode ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Seated Mode', 'toggle-seated-mode'));
+    panel.append(this.createInfoLabel(`Reduce Flashing: ${settings.reduceFlashing ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Reduce Flashing', 'toggle-reduce-flashing'));
+    panel.append(this.createInfoLabel(`Master Volume: ${Math.round(settings.masterVolume * 100)}%`));
+
+    const volumeRow = document.createElement('div');
+    volumeRow.style.display = 'grid';
+    volumeRow.style.gridTemplateColumns = '1fr 1fr';
+    volumeRow.style.gap = '8px';
+    volumeRow.append(this.createCommandButton('Volume -', 'master-volume-down'));
+    volumeRow.append(this.createCommandButton('Volume +', 'master-volume-up'));
+    panel.append(volumeRow);
+
+    panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+    return panel;
+  }
+
+  private createCreditsPanel(): HTMLElement {
+    const panel = document.createElement('div');
+    panel.style.display = 'grid';
+    panel.style.gap = '8px';
+    panel.style.minWidth = '280px';
+
+    const title = document.createElement('div');
+    title.textContent = 'Credits';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '700';
+    panel.append(title);
+    panel.append(this.createInfoLabel('Lumen Pilgrimage: Reforge'));
+    panel.append(this.createInfoLabel('Core Prototype Team'));
+    panel.append(this.createInfoLabel('Design / Engineering / Art / Audio'));
+    panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+    return panel;
+  }
+
+  private createInfoLabel(text: string): HTMLDivElement {
+    const label = document.createElement('div');
+    label.textContent = text;
+    label.style.fontSize = '12px';
+    label.style.opacity = '0.85';
+    return label;
   }
 
   private createCommandButton(label: string, command: MenuCommand): HTMLButtonElement {
