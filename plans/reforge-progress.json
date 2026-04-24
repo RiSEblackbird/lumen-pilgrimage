@@ -18,7 +18,7 @@
   "next_actions": [
     "replace boss stub readout with biome-specific multi-phase behavior contracts",
     "expand biome enemy families beyond Ember/Moon spawn tables",
-    "connect unlocked hub gear to actual loadout availability in CombatSandboxDirector"
+    "expose locked loadout entries in HUD/menu so unlock impact is visible before expedition launch"
   ],
   "smoke_commands": [
     "npm run typecheck",
@@ -28,6 +28,6 @@
   "risks": [
     "boss implementation is currently HUD stub only; no boss rule mutation/AI state exists yet",
     "encounter data currently covers only Ember Ossuary and Moon Reservoir",
-    "Hub unlock/craft currently updates save data only; combat loadout gating is not yet enforced"
+    "Hub unlock/craft はロードアウト循環へ反映済みだが、Menu/HUD 側でロック済み候補を可視化していない"
   ]
 }

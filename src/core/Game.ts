@@ -69,6 +69,7 @@ export class Game {
     this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
 
     this.combatSandbox = new CombatSandboxDirector(this.continueSnapshot);
+    this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
     this.menu.setContinueSnapshot(this.continueSnapshot);
     this.menu.setSettings(this.settingsViewModel);
     this.menu.setHub(this.hubViewModel);
@@ -330,6 +331,7 @@ export class Game {
     this.menu.setContinueSnapshot(this.continueSnapshot);
     this.menu.setHub(this.hubViewModel);
     this.combatSandbox.resetForRun(null);
+    this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
     this.runActive = false;
     if (this.states.canTransition('Hub')) {
       this.states.transition('Hub');
@@ -368,6 +370,7 @@ export class Game {
     if (!slot) {
       return;
     }
+    this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
     this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
     this.menu.setHub(this.hubViewModel);
   }
