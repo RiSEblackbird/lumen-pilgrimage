@@ -1,49 +1,46 @@
-# Architecture: Lumen Pilgrimage
+# Architecture: Lumen Pilgrimage Reforge (Phase 1)
 
 ## レイヤー責務
 
-- `app/`: アプリ全体のオーケストレーション、XR/FPS 入力統合、状態遷移。
-- `world/`: 3D 空間要素、光源、probe、glyph、粒子。
-- `ui/`: 2D/3D の操作ガイド表示。
-- `export/`: 最終 ritual 状態のシリアライズ。
+- `bootstrap/`: 起動シーケンス。
+- `core/`: Game 本体、レンダーループ、構成。
+- `engine/input`: Desktop/XR の入力抽象。
+- `engine/save`: セーブデータと設定保存。
+- `engine/debug`: Perf HUD。
+- `game/state`: game state machine。
+- `game/ui`: HUD / menu / VR wrist UI。
+- `world/hub`: Hub の最小 3D シーン。
 
 ## 主な依存
 
-- `LumenPilgrimageApp`
-  - `Sanctuary`
-  - `ProbeVolumeManager`
-  - `GlyphSystem`
-  - `XRInputRig`
-  - `FPSInputRig`
-  - `DreamExporter`
-- `Sanctuary`
-  - `KelvinLightRig`
-  - `SpiritParticles`
+- `AppBootstrap`
+  - `Game`
+- `Game`
+  - `GameLoop`
+  - `GameStateMachine`
+  - `DesktopActionAdapter`
+  - `XRActionAdapter`
+  - `SaveManager`
+  - `SettingsStore`
+  - `PerfHud`
+  - `HudManager`
+  - `MenuManager`
+  - `VrWristUi`
+  - `PilgrimsBelfryScene`
 
-## 重要な分岐条件
+## 分岐条件
 
-- Glyph select 時:
-  - 通常は選択された domain へ遷移。
-  - 両手同一 glyph + 十分な進行で `dawn-altar` を即時解放。
-  - FPS では `Shift` を押しながら glyph 選択した場合に増幅扱い。
-- 入力モード:
-  - XR セッション中は VR モード（`XRInputRig`）を使用。
-  - 非 XR セッション中は FPS モード（`FPSInputRig`）を使用。
-  - FPS の Kelvin 調整は `Z` / `X` キーで仮想 roll を生成し、`KelvinLightRig.adjustByRoll()` に反映。
-- キーボード `V`:
-  - `LightProbeGridHelper` 可視化の ON/OFF。
-- キーボード `E`:
-  - 現在状態を JSON で export。
+- XR セッション中は `XRActionAdapter.isPresenting()` により目標 FPS と objective 表示を切替。
+- 非 XR 時は Desktop 入力スナップショットで interact 状態を objective 文言へ反映。
+- State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 
 ## 拡張ポイント
 
-- `RITUAL_CONFIG` を拡張すると、光・fog・粒子の儀式テーマ追加が可能。
-- `DreamExporter` はファイル保存や API 送信の導入に拡張可能。
-- `XRInputRig` のイベント連携を拡張すると、複雑なジェスチャーを追加可能。
+- `GameStateMachine` に Phase 2 以降の戦闘/モード遷移を追加。
+- `ActionMap` に combat / traversal のアクションを追加し、Desktop/XR を等価拡張。
+- `PilgrimsBelfryScene` を Hub 機能（craft, codex, mode select）へ分解。
+- `SaveManager` の slot schema を campaign/meta progression 対応へ拡張。
 
-## パフォーマンス方針
+## 旧構成の扱い
 
-- Quest クラスを想定し pixel ratio を上限化。
-- `renderer.xr.setFoveation(1)` を使用。
-- 反復要素（粒子）は instancing で描画。
-- 重い postprocess は採用せず、probe + fog + light 遷移中心で演出。
+`app/`, `world/`, `ui/`, `export/` の旧 ritual/glyph 系実装は参照用に残置。ランタイムのエントリ経路は `src/main.ts` から新 `AppBootstrap` / `Game` に切替済み。
