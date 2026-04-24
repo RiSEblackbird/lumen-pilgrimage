@@ -83,6 +83,147 @@ const MOON_BASE: readonly EncounterEnemyTemplate[] = [
   }
 ] as const;
 
+const BIRCH_BASE: readonly EncounterEnemyTemplate[] = [
+  {
+    archetypeId: 'birch-widow',
+    label: 'Birch Widow',
+    baseHealth: 38,
+    baseDamage: 11,
+    attackInterval: 2.5,
+    telegraphLead: 0.5,
+    meleeWeight: 0.85,
+    rangedWeight: 0.2
+  },
+  {
+    archetypeId: 'pollen-choir',
+    label: 'Pollen Choir',
+    baseHealth: 32,
+    baseDamage: 8,
+    attackInterval: 2.1,
+    telegraphLead: 0.42,
+    meleeWeight: 0.2,
+    rangedWeight: 0.9
+  },
+  {
+    archetypeId: 'root-shepherd',
+    label: 'Root Shepherd',
+    baseHealth: 66,
+    baseDamage: 15,
+    attackInterval: 4.2,
+    telegraphLead: 0.78,
+    meleeWeight: 0.6,
+    rangedWeight: 0.55
+  }
+] as const;
+
+const OBSIDIAN_BASE: readonly EncounterEnemyTemplate[] = [
+  {
+    archetypeId: 'artery-hound',
+    label: 'Artery Hound',
+    baseHealth: 36,
+    baseDamage: 10,
+    attackInterval: 2.3,
+    telegraphLead: 0.46,
+    meleeWeight: 0.9,
+    rangedWeight: 0.1
+  },
+  {
+    archetypeId: 'mirror-deacon',
+    label: 'Mirror Deacon',
+    baseHealth: 46,
+    baseDamage: 13,
+    attackInterval: 3.5,
+    telegraphLead: 0.68,
+    meleeWeight: 0.25,
+    rangedWeight: 0.92
+  },
+  {
+    archetypeId: 'blackglass-warden',
+    label: 'Blackglass Warden',
+    baseHealth: 72,
+    baseDamage: 16,
+    attackInterval: 4.6,
+    telegraphLead: 0.82,
+    meleeWeight: 0.7,
+    rangedWeight: 0.6
+  }
+] as const;
+
+const DAWN_BASE: readonly EncounterEnemyTemplate[] = [
+  {
+    archetypeId: 'dawn-tender',
+    label: 'Dawn Tender',
+    baseHealth: 44,
+    baseDamage: 11,
+    attackInterval: 2.8,
+    telegraphLead: 0.52,
+    meleeWeight: 0.7,
+    rangedWeight: 0.35
+  },
+  {
+    archetypeId: 'halo-drone',
+    label: 'Halo Drone',
+    baseHealth: 34,
+    baseDamage: 10,
+    attackInterval: 2.2,
+    telegraphLead: 0.4,
+    meleeWeight: 0.1,
+    rangedWeight: 1
+  },
+  {
+    archetypeId: 'seraph-machinist',
+    label: 'Seraph Machinist',
+    baseHealth: 74,
+    baseDamage: 18,
+    attackInterval: 4.7,
+    telegraphLead: 0.84,
+    meleeWeight: 0.5,
+    rangedWeight: 0.8
+  }
+] as const;
+
+const FINAL_BASE: readonly EncounterEnemyTemplate[] = [
+  {
+    archetypeId: 'cantor-shade',
+    label: 'Cantor Shade',
+    baseHealth: 48,
+    baseDamage: 14,
+    attackInterval: 2.5,
+    telegraphLead: 0.44,
+    meleeWeight: 0.55,
+    rangedWeight: 0.7
+  },
+  {
+    archetypeId: 'broken-choir-lancer',
+    label: 'Broken Choir Lancer',
+    baseHealth: 62,
+    baseDamage: 18,
+    attackInterval: 3.8,
+    telegraphLead: 0.66,
+    meleeWeight: 0.85,
+    rangedWeight: 0.5
+  },
+  {
+    archetypeId: 'sun-shard-seraph',
+    label: 'Sun Shard Seraph',
+    baseHealth: 84,
+    baseDamage: 21,
+    attackInterval: 5,
+    telegraphLead: 0.88,
+    meleeWeight: 0.65,
+    rangedWeight: 0.95
+  }
+] as const;
+
+const BIOME_ENEMY_TEMPLATES: Readonly<Record<string, readonly EncounterEnemyTemplate[]>> = {
+  'ember-ossuary': EMBER_BASE,
+  'moon-reservoir': MOON_BASE,
+  'birch-astrarium': BIRCH_BASE,
+  'obsidian-artery': OBSIDIAN_BASE,
+  'dawn-foundry': DAWN_BASE,
+  'broken-sun-choir': FINAL_BASE
+};
+
 const SECRET_TEMPLATE: EncounterEnemyTemplate = {
   archetypeId: 'echo-sentinel',
   label: 'Echo Sentinel',
@@ -106,7 +247,7 @@ const ELITE_TEMPLATE: EncounterEnemyTemplate = {
 };
 
 export function buildEncounterWave(context: EncounterSpawnContext): readonly EncounterEnemyTemplate[] {
-  const biomeTemplates = context.biomeId === 'moon-reservoir' ? MOON_BASE : EMBER_BASE;
+  const biomeTemplates = BIOME_ENEMY_TEMPLATES[context.biomeId] ?? EMBER_BASE;
   const wave = [...biomeTemplates];
 
   if (context.roomTags.includes('traversal')) {
