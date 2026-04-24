@@ -41,6 +41,7 @@ npm run check
   - 取得 relic の stat modifier を combat resource/damage へ反映（dash cost / guard mitigation / parry bonus / room-clear focus 等）
   - continue snapshot に route style + relic modifier を保存し、Menu continue 表示へ反映
   - continue snapshot に roomId を保存し、起動時に mission/room/vitals/relic を sandbox へ再適用
+  - continue snapshot に missionId を保存し、mission 表示名変更に影響されない復帰解決へ移行（旧 save は missionName 互換復帰）
   - boss-approach room 到達時に biome 別の Warden stub phase readout を HUD 表示（Ember/Moon）
 
 ## サンドボックス操作（flat-screen）

@@ -13,6 +13,7 @@ import type { ContinueSnapshot } from '../ui/MenuManager';
 
 export interface CombatPersistenceSnapshot {
   readonly biomeId: string;
+  readonly missionId: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
   readonly roomId: string;
@@ -153,7 +154,7 @@ export class CombatSandboxDirector {
       return;
     }
 
-    const missionIndex = MISSION_TYPE_DEFS.findIndex((mission) => mission.displayName === snapshot.missionName);
+    const missionIndex = this.resolveMissionIndex(snapshot.missionId, snapshot.missionName);
     this.missionIndex = missionIndex >= 0 ? missionIndex : 0;
     this.health = snapshot.health;
     this.guard = snapshot.guard;
@@ -165,7 +166,7 @@ export class CombatSandboxDirector {
       biomeId: snapshot.biomeId,
       sectorIndex: snapshot.sectorIndex,
       roomId: snapshot.roomId,
-      routeStyle: snapshot.routeStyle === 'risk' || snapshot.routeStyle === 'recovery' || snapshot.routeStyle === 'secret' ? snapshot.routeStyle : 'standard'
+      routeStyle: this.resolveRouteStyle(snapshot.routeStyle)
     });
     this.latestEncounter = this.encounter.snapshot();
     this.objective = `${snapshot.missionName} を継続。保存地点 ${snapshot.roomLabel} から再開。`;
@@ -493,6 +494,7 @@ export class CombatSandboxDirector {
 
     return {
       biomeId: this.latestEncounter.biomeId,
+      missionId: MISSION_TYPE_DEFS[this.missionIndex].id,
       sectorIndex: this.latestEncounter.sectorIndex,
       sectorsTotal: this.latestEncounter.sectorsTotal,
       roomId: this.latestEncounter.roomId,
@@ -521,5 +523,26 @@ export class CombatSandboxDirector {
 
   private isRisingEdge(current: boolean, previous: boolean): boolean {
     return current && !previous;
+  }
+
+  private resolveMissionIndex(savedMissionId: string, savedMissionName: string): number {
+    const byId = MISSION_TYPE_DEFS.findIndex((mission) => mission.id === savedMissionId);
+    if (byId >= 0) {
+      return byId;
+    }
+
+    const byName = MISSION_TYPE_DEFS.findIndex((mission) => mission.displayName === savedMissionName);
+    if (byName >= 0) {
+      return byName;
+    }
+
+    return 0;
+  }
+
+  private resolveRouteStyle(routeStyle: string): RouteStyle {
+    if (routeStyle === 'risk' || routeStyle === 'recovery' || routeStyle === 'secret') {
+      return routeStyle;
+    }
+    return 'standard';
   }
 }

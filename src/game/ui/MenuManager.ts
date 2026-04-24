@@ -3,6 +3,7 @@ import type { RelicStatModifiers } from '../items/RelicEffects';
 
 export interface ContinueSnapshot {
   readonly biomeId: string;
+  readonly missionId: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
   readonly roomId: string;
@@ -63,7 +64,7 @@ export class MenuManager {
       `Continue: ${snapshot.biomeId} / Sector ${snapshot.sectorIndex}/${snapshot.sectorsTotal}`,
       `Room: ${snapshot.roomLabel} / Route ${snapshot.routeStyle}`,
       `RoomID: ${snapshot.roomId || 'legacy-save'}`,
-      `Mission: ${snapshot.missionName}`,
+      `Mission: ${snapshot.missionName} (${snapshot.missionId || 'legacy-save'})`,
       `Vitals: HP ${snapshot.health.toFixed(0)} | Guard ${snapshot.guard.toFixed(0)} | Focus ${snapshot.focus.toFixed(0)} | Overburn ${snapshot.overburn.toFixed(0)}`,
       `Relics: ${relicSummary}`,
       `RelicMods: DMG x${snapshot.relicModifiers.primaryDamageMultiplier.toFixed(2)} | GuardTaken x${snapshot.relicModifiers.guardDamageTakenMultiplier.toFixed(2)} | DashCost x${snapshot.relicModifiers.dashFocusCostMultiplier.toFixed(2)}`,

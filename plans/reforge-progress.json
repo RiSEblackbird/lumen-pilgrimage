@@ -8,7 +8,8 @@
     "phase3-pressure-mission-reward",
     "phase4-room-graph-branching",
     "phase4-contract-route-save",
-    "phase4-continue-resume-boss-stub"
+    "phase4-continue-resume-boss-stub",
+    "phase4-continue-hardening"
   ],
   "in_progress": [
     "phase4-hub-biome-boss-foundation"
@@ -25,8 +26,8 @@
     "npm run dev"
   ],
   "risks": [
-    "continue restore currently binds mission by displayName, so mission localization changes would require stable ID persistence",
     "boss implementation is currently HUD stub only; no boss rule mutation/AI state exists yet",
-    "encounter data currently covers only Ember Ossuary and Moon Reservoir"
+    "encounter data currently covers only Ember Ossuary and Moon Reservoir",
+    "continue/new game manual branching is not implemented yet"
   ]
 }

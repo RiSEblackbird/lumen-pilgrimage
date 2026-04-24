@@ -103,6 +103,7 @@ export class Game {
         const snapshot = this.combatSandbox.getPersistenceSnapshot();
         const updated = this.saves.updateExpedition(0, {
           biomeId: snapshot.biomeId,
+          missionId: snapshot.missionId,
           sectorIndex: snapshot.sectorIndex,
           sectorsTotal: snapshot.sectorsTotal,
           roomId: snapshot.roomId,
