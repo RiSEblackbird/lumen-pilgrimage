@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room の Warden stub HUD readout を確認できる状態です。加えて MainMenu で Continue / New Game の起動分岐、Settings / Credits の専用パネル遷移を導入しました。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room の Warden stub HUD readout を確認できる状態です。加えて MainMenu で Continue / New Game の起動分岐、Settings / Credits の専用パネル遷移、Hub/MetaUpgrade の恒久成長プレースホルダ（通貨表示・unlock/craft保存）を導入しました。
 
 ## セットアップ
 
@@ -22,15 +22,17 @@ npm run check
 - 新エントリ: `AppBootstrap` → `Game`
 - state machine（Boot〜EndlessCollapse）
 - Desktop/XR 入力抽象（ActionMap）
-- `SaveManager` / `SettingsStore`（slot0 の初期化 + expedition 進行スナップショット自動保存）
+- `SaveManager` / `SettingsStore`（slot0 の初期化 + expedition 進行スナップショット自動保存 + meta progression 永続化）
 - `PerfHud`（簡易 FPS 監視）
-- Hub skeleton (`PilgrimsBelfryScene`)
+- Hub skeleton (`PilgrimsBelfryScene`) + Hub/MetaUpgrade メニュー導線
 - HUD / Menu の最小 UI（保存済み expedition snapshot を Continue 情報として表示）
 - MainMenu コマンド UI（Continue / New Game / Settings / Credits）と command queue
 - run 開始の明示分岐（起動直後は MainMenu 待機、選択後に InExpedition へ遷移）
 - New Game 時の slot reset と sandbox 初期化
 - Settings パネル（snap turn / seated mode / reduce flashing / master volume）と保存
 - Credits パネルと MainMenu 復帰導線
+- Hub パネルで恒久通貨（Lumen Ash / Choir Thread / Saint Glass / Echo Script）と unlock 状態を表示
+- MetaUpgrade で Astral Pike unlock / Beacon Crucible craft の保存連動プレースホルダ
 - combat sandbox (`CombatSandboxDirector`)
   - 主武器 4 種（Prism Blade / Censer Carbine / Astral Pike / Thurible Chain）
   - 副手段 4 種（Ward Aegis / Grasp Tether / Beacon Crucible / Siphon Engine）
@@ -104,4 +106,4 @@ src/
 
 ## 次フェーズ方針
 
-Phase 4 継続として、Hub 恒久成長 UI、Ember/Moon boss の本戦挙動、Settings 値の実ランタイム反映（音量/UI スケール/快適性設定）を実装します。
+Phase 4 継続として、Hub unlock/craft の実戦ロードアウト反映、Ember/Moon boss の本戦挙動、Settings 値の実ランタイム反映（音量/UI スケール/快適性設定）を実装します。

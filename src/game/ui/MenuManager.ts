@@ -19,6 +19,17 @@ export interface ContinueSnapshot {
   readonly capturedAtIso: string;
 }
 
+export interface HubViewModel {
+  readonly unlockedBiomes: readonly string[];
+  readonly lumenAsh: number;
+  readonly choirThread: number;
+  readonly saintGlass: number;
+  readonly echoScript: number;
+  readonly unlockedWeapons: readonly string[];
+  readonly unlockedOffhands: readonly string[];
+  readonly unlockedSigils: readonly string[];
+}
+
 export interface SettingsViewModel {
   readonly snapTurn: boolean;
   readonly seatedMode: boolean;
@@ -30,6 +41,11 @@ export interface SettingsViewModel {
 export type MenuCommand =
   | 'continue'
   | 'new-game'
+  | 'enter-hub'
+  | 'launch-expedition'
+  | 'open-meta-upgrade'
+  | 'unlock-astral-pike'
+  | 'craft-beacon-crucible'
   | 'open-settings'
   | 'open-credits'
   | 'toggle-snap-turn'
@@ -37,7 +53,8 @@ export type MenuCommand =
   | 'toggle-reduce-flashing'
   | 'master-volume-down'
   | 'master-volume-up'
-  | 'back-main-menu';
+  | 'back-main-menu'
+  | 'back-hub';
 
 export class MenuManager {
   private readonly root: HTMLDivElement;
@@ -45,6 +62,7 @@ export class MenuManager {
   private state: GameState = 'Boot';
   private continueSnapshot: ContinueSnapshot | null = null;
   private settings: SettingsViewModel | null = null;
+  private hub: HubViewModel | null = null;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -75,6 +93,11 @@ export class MenuManager {
     this.render();
   }
 
+  setHub(hub: HubViewModel): void {
+    this.hub = hub;
+    this.render();
+  }
+
   consumeCommand(): MenuCommand | null {
     return this.commandQueue.shift() ?? null;
   }
@@ -84,6 +107,18 @@ export class MenuManager {
     if (this.state === 'MainMenu') {
       this.root.innerHTML = '';
       this.root.append(this.createMainMenu(snapshot));
+      return;
+    }
+
+    if (this.state === 'Hub') {
+      this.root.innerHTML = '';
+      this.root.append(this.createHubPanel(snapshot));
+      return;
+    }
+
+    if (this.state === 'MetaUpgrade') {
+      this.root.innerHTML = '';
+      this.root.append(this.createMetaUpgradePanel());
       return;
     }
 
@@ -154,8 +189,70 @@ export class MenuManager {
     }
 
     panel.append(this.createCommandButton('New Game', 'new-game'));
+    panel.append(this.createCommandButton('Enter Hub', 'enter-hub'));
     panel.append(this.createCommandButton('Settings', 'open-settings'));
     panel.append(this.createCommandButton('Credits', 'open-credits'));
+    return panel;
+  }
+
+  private createHubPanel(snapshot: ContinueSnapshot | null): HTMLElement {
+    const panel = document.createElement('div');
+    panel.style.display = 'grid';
+    panel.style.gap = '8px';
+    panel.style.minWidth = '300px';
+
+    const title = document.createElement('div');
+    title.textContent = 'Pilgrim\'s Belfry (Hub)';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '700';
+    panel.append(title);
+
+    const hub = this.hub;
+    if (hub) {
+      panel.append(this.createInfoLabel(`Biomes: ${hub.unlockedBiomes.join(', ')}`));
+      panel.append(this.createInfoLabel(`Lumen Ash ${hub.lumenAsh} | Choir Thread ${hub.choirThread}`));
+      panel.append(this.createInfoLabel(`Saint Glass ${hub.saintGlass} | Echo Script ${hub.echoScript}`));
+      panel.append(this.createInfoLabel(`Weapons: ${hub.unlockedWeapons.join(', ')}`));
+      panel.append(this.createInfoLabel(`Offhands: ${hub.unlockedOffhands.join(', ')}`));
+      panel.append(this.createInfoLabel(`Sigils: ${hub.unlockedSigils.join(', ')}`));
+    } else {
+      panel.append(this.createInfoLabel('Hub progression unavailable'));
+    }
+
+    if (snapshot) {
+      panel.append(this.createInfoLabel(`Resume-ready: ${snapshot.biomeId} / ${snapshot.roomLabel}`));
+    }
+
+    panel.append(this.createCommandButton('Launch Expedition', 'launch-expedition'));
+    panel.append(this.createCommandButton('Open Meta Upgrades', 'open-meta-upgrade'));
+    panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+    return panel;
+  }
+
+  private createMetaUpgradePanel(): HTMLElement {
+    const panel = document.createElement('div');
+    panel.style.display = 'grid';
+    panel.style.gap = '8px';
+    panel.style.minWidth = '310px';
+
+    const title = document.createElement('div');
+    title.textContent = 'Meta Upgrade Terminal';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '700';
+    panel.append(title);
+
+    const hub = this.hub;
+    if (!hub) {
+      panel.append(this.createInfoLabel('Meta progression unavailable'));
+      panel.append(this.createCommandButton('Back to Hub', 'back-hub'));
+      return panel;
+    }
+
+    panel.append(this.createInfoLabel(`Lumen Ash: ${hub.lumenAsh} (Astral Pike unlock cost: 80)`));
+    panel.append(this.createCommandButton('Unlock Astral Pike (80 Ash)', 'unlock-astral-pike'));
+    panel.append(this.createInfoLabel(`Choir Thread: ${hub.choirThread} (Beacon Crucible craft cost: 20)`));
+    panel.append(this.createCommandButton('Craft Beacon Crucible (20 Thread)', 'craft-beacon-crucible'));
+    panel.append(this.createCommandButton('Back to Hub', 'back-hub'));
     return panel;
   }
 

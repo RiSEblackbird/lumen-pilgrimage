@@ -20,13 +20,34 @@ export interface ExpeditionProgress {
   readonly capturedAtIso: string;
 }
 
+export interface MetaProgress {
+  readonly lumenAsh: number;
+  readonly choirThread: number;
+  readonly saintGlass: number;
+  readonly echoScript: number;
+  readonly unlockedWeapons: readonly string[];
+  readonly unlockedOffhands: readonly string[];
+  readonly unlockedSigils: readonly string[];
+}
+
 export interface SaveSlot {
   readonly slotId: number;
   readonly state: GameState;
   readonly unlockedBiomes: readonly string[];
   readonly expedition: ExpeditionProgress | null;
+  readonly metaProgress: MetaProgress;
   readonly updatedAtIso: string;
 }
+
+export const DEFAULT_META_PROGRESS: MetaProgress = {
+  lumenAsh: 120,
+  choirThread: 30,
+  saintGlass: 4,
+  echoScript: 10,
+  unlockedWeapons: ['prism-blade', 'censer-carbine'],
+  unlockedOffhands: ['ward-aegis'],
+  unlockedSigils: ['blink-dash', 'shock-nova']
+};
 
 export class SaveManager {
   private readonly keyPrefix = 'lumen-pilgrimage:save-slot:';
@@ -56,6 +77,7 @@ export class SaveManager {
       state: fallback.state,
       unlockedBiomes: fallback.unlockedBiomes,
       expedition: fallback.expedition,
+      metaProgress: fallback.metaProgress,
       updatedAtIso: new Date().toISOString()
     };
     this.save(created);
@@ -81,12 +103,28 @@ export class SaveManager {
     return updated;
   }
 
+  updateMetaProgress(slotId: number, updater: (meta: MetaProgress) => MetaProgress): SaveSlot | null {
+    const current = this.load(slotId);
+    if (!current) {
+      return null;
+    }
+
+    const updated: SaveSlot = {
+      ...current,
+      metaProgress: updater(current.metaProgress),
+      updatedAtIso: new Date().toISOString()
+    };
+    this.save(updated);
+    return updated;
+  }
+
   resetSlot(slotId: number, next: Omit<SaveSlot, 'slotId' | 'updatedAtIso'>): SaveSlot {
     const reset: SaveSlot = {
       slotId,
       state: next.state,
       unlockedBiomes: next.unlockedBiomes,
       expedition: next.expedition,
+      metaProgress: next.metaProgress,
       updatedAtIso: new Date().toISOString()
     };
     this.save(reset);
@@ -123,11 +161,17 @@ export class SaveManager {
       return null;
     }
 
+    const metaProgress = this.parseMetaProgress(input.metaProgress);
+    if (!metaProgress) {
+      return null;
+    }
+
     return {
       slotId: input.slotId,
       state: input.state,
       unlockedBiomes: input.unlockedBiomes,
       expedition,
+      metaProgress,
       updatedAtIso: input.updatedAtIso
     };
   }
@@ -187,6 +231,37 @@ export class SaveManager {
       relicIds: relicIds as string[],
       relicModifiers,
       capturedAtIso: input.capturedAtIso as string
+    };
+  }
+
+  private parseMetaProgress(input: unknown): MetaProgress | null {
+    if (input === undefined || input === null) {
+      return DEFAULT_META_PROGRESS;
+    }
+
+    if (!this.isRecord(input)) {
+      return null;
+    }
+
+    const numberKeys: Array<keyof MetaProgress> = ['lumenAsh', 'choirThread', 'saintGlass', 'echoScript'];
+    if (numberKeys.some((key) => typeof input[key] !== 'number')) {
+      return null;
+    }
+
+    const arrayKeys: Array<keyof MetaProgress> = ['unlockedWeapons', 'unlockedOffhands', 'unlockedSigils'];
+    const hasInvalidArray = arrayKeys.some((key) => !Array.isArray(input[key]) || !(input[key] as unknown[]).every((entry) => typeof entry === 'string'));
+    if (hasInvalidArray) {
+      return null;
+    }
+
+    return {
+      lumenAsh: input.lumenAsh as number,
+      choirThread: input.choirThread as number,
+      saintGlass: input.saintGlass as number,
+      echoScript: input.echoScript as number,
+      unlockedWeapons: input.unlockedWeapons as string[],
+      unlockedOffhands: input.unlockedOffhands as string[],
+      unlockedSigils: input.unlockedSigils as string[]
     };
   }
 
