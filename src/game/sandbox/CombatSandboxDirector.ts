@@ -9,11 +9,14 @@ import { OFFHAND_DEFS } from '../items/OffhandDefs';
 import { DEFAULT_RELIC_MODIFIERS, buildRelicStatModifiers, type RelicStatModifiers } from '../items/RelicEffects';
 import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
+import type { ContinueSnapshot } from '../ui/MenuManager';
 
 export interface CombatPersistenceSnapshot {
   readonly biomeId: string;
+  readonly missionId: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
+  readonly roomId: string;
   readonly roomLabel: string;
   readonly routeStyle: RouteStyle;
   readonly missionName: string;
@@ -56,6 +59,7 @@ export interface CombatSandboxSnapshot {
   readonly equippedRelics: readonly string[];
   readonly encounterLabel: string;
   readonly contractLabel: string;
+  readonly bossLabel: string;
 }
 
 const MAX_HEALTH = 100;
@@ -90,8 +94,10 @@ export class CombatSandboxDirector {
   private elapsedSeconds = 0;
   private roomDamageTaken = 0;
   private previousActions: ActionState;
+  private bossPhase = 0;
+  private bossLabel = 'No Warden contact';
 
-  constructor() {
+  constructor(snapshot: ContinueSnapshot | null = null) {
     this.previousActions = {
       moveForward: false,
       moveBackward: false,
@@ -106,8 +112,7 @@ export class CombatSandboxDirector {
       openMenu: false
     };
 
-    this.encounter.startExpedition('ember-ossuary', MISSION_TYPE_DEFS[this.missionIndex].routeBias);
-    this.latestEncounter = this.encounter.snapshot();
+    this.initializeFromSnapshot(snapshot);
     this.encounterLabel = this.latestEncounter.progressLabel;
     this.spawnWave();
   }
@@ -137,8 +142,34 @@ export class CombatSandboxDirector {
       rewardLabel: this.rewardLabel,
       equippedRelics: this.rewards.getEquippedRelics(),
       encounterLabel: this.encounterLabel,
-      contractLabel: this.getContractLabel()
+      contractLabel: this.getContractLabel(),
+      bossLabel: this.bossLabel
     };
+  }
+
+  private initializeFromSnapshot(snapshot: ContinueSnapshot | null): void {
+    if (!snapshot) {
+      this.encounter.startExpedition('ember-ossuary', MISSION_TYPE_DEFS[this.missionIndex].routeBias);
+      this.latestEncounter = this.encounter.snapshot();
+      return;
+    }
+
+    const missionIndex = this.resolveMissionIndex(snapshot.missionId, snapshot.missionName);
+    this.missionIndex = missionIndex >= 0 ? missionIndex : 0;
+    this.health = snapshot.health;
+    this.guard = snapshot.guard;
+    this.focus = snapshot.focus;
+    this.overburn = snapshot.overburn;
+    this.rewards.setEquippedRelics(snapshot.relicIds);
+    this.encounter.setMissionRouteBias(MISSION_TYPE_DEFS[this.missionIndex].routeBias);
+    this.encounter.restoreExpedition({
+      biomeId: snapshot.biomeId,
+      sectorIndex: snapshot.sectorIndex,
+      roomId: snapshot.roomId,
+      routeStyle: this.resolveRouteStyle(snapshot.routeStyle)
+    });
+    this.latestEncounter = this.encounter.snapshot();
+    this.objective = `${snapshot.missionName} を継続。保存地点 ${snapshot.roomLabel} から再開。`;
   }
 
   private resolveResources(deltaSeconds: number): void {
@@ -350,6 +381,7 @@ export class CombatSandboxDirector {
 
     this.roomStartSeconds = this.elapsedSeconds;
     this.roomDamageTaken = 0;
+    this.updateBossReadout(encounter.roomTags);
     this.spawnWave();
   }
 
@@ -413,6 +445,20 @@ export class CombatSandboxDirector {
     }
   }
 
+  private updateBossReadout(roomTags: readonly string[]): void {
+    if (!roomTags.includes('boss-approach')) {
+      this.bossLabel = 'No Warden contact';
+      this.bossPhase = 0;
+      return;
+    }
+
+    const isMoon = this.latestEncounter.biomeId === 'moon-reservoir';
+    const bossName = isMoon ? 'The Thirteen-Eyed Pool' : 'Bell of Cinders';
+    this.bossPhase = Math.min(3, this.bossPhase + 1);
+    this.bossLabel = `${bossName} (stub) / Phase ${this.bossPhase}/3`;
+    this.objective = `${bossName} への前哨戦。phase telegraph の読み合い準備。`;
+  }
+
   private tryParry(): void {
     const telegraphedEnemy = this.enemies.find((enemy) => enemy.attackTimer > 0 && enemy.attackTimer <= enemy.telegraphLead);
     if (!telegraphedEnemy) {
@@ -448,8 +494,10 @@ export class CombatSandboxDirector {
 
     return {
       biomeId: this.latestEncounter.biomeId,
+      missionId: MISSION_TYPE_DEFS[this.missionIndex].id,
       sectorIndex: this.latestEncounter.sectorIndex,
       sectorsTotal: this.latestEncounter.sectorsTotal,
+      roomId: this.latestEncounter.roomId,
       roomLabel: this.latestEncounter.progressLabel,
       routeStyle: this.latestEncounter.routeStyle,
       missionName: MISSION_TYPE_DEFS[this.missionIndex].displayName,
@@ -475,5 +523,26 @@ export class CombatSandboxDirector {
 
   private isRisingEdge(current: boolean, previous: boolean): boolean {
     return current && !previous;
+  }
+
+  private resolveMissionIndex(savedMissionId: string, savedMissionName: string): number {
+    const byId = MISSION_TYPE_DEFS.findIndex((mission) => mission.id === savedMissionId);
+    if (byId >= 0) {
+      return byId;
+    }
+
+    const byName = MISSION_TYPE_DEFS.findIndex((mission) => mission.displayName === savedMissionName);
+    if (byName >= 0) {
+      return byName;
+    }
+
+    return 0;
+  }
+
+  private resolveRouteStyle(routeStyle: string): RouteStyle {
+    if (routeStyle === 'risk' || routeStyle === 'recovery' || routeStyle === 'secret') {
+      return routeStyle;
+    }
+    return 'standard';
   }
 }

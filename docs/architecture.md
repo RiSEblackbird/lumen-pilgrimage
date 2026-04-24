@@ -1,4 +1,4 @@
-# Architecture: Lumen Pilgrimage Reforge (Phase 4.3)
+# Architecture: Lumen Pilgrimage Reforge (Phase 4)
 
 ## レイヤー責務
 
@@ -54,8 +54,12 @@
 - wave spawn は `EncounterSpawnTables` が biome + room tags + sector から算出し、linear 固定 wave を置き換える。
 - relic 取得後は `RelicEffects` を通じて dash cost、guard 被ダメ、room clear Focus 回復、parry 報酬などに補正を適用する。
 - `SaveManager` は slot0 を `loadOrCreate` し、sandbox の expedition 進行を 1 秒間隔で保存する。snapshot には routeStyle と relicModifiers を含め、旧形式セーブは default modifiers で後方互換を維持する。
+- `SaveManager` は expedition snapshot に `roomId` を含めて保存し、旧 save（roomId 未保存）を読み込む場合は空文字で互換復帰する。
+- `SaveManager` は expedition snapshot に `missionId` を含めて保存し、旧 save（missionId 未保存）は missionName 互換復帰を許容する。
 - `MenuManager` は `SaveManager` の expedition snapshot を読み、Hub の Continue 情報として biome/sector/room/vitals/relic を表示する。
 - mission は `MissionTypes` でデータ駆動定義し、sandbox でローテーション表示しつつ route bias を EncounterDirector へ注入する。
+- `Game` は起動時に Continue snapshot を `CombatSandboxDirector` へ注入し、mission/room/vitals/relic を run 状態へ再適用する。
+- `CombatSandboxDirector` は `boss-approach` room tag を検知すると biome 別 Warden stub（Bell of Cinders / The Thirteen-Eyed Pool）の phase readout を HUD 表示する。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 
 ## 拡張ポイント

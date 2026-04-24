@@ -4,8 +4,10 @@ import type { RelicStatModifiers } from '../../game/items/RelicEffects';
 
 export interface ExpeditionProgress {
   readonly biomeId: string;
+  readonly missionId: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
+  readonly roomId: string;
   readonly roomLabel: string;
   readonly routeStyle: string;
   readonly missionName: string;
@@ -135,6 +137,8 @@ export class SaveManager {
     const numberKeys: Array<keyof ExpeditionProgress> = ['sectorIndex', 'sectorsTotal', 'health', 'guard', 'focus', 'overburn'];
     const stringKeys: Array<keyof ExpeditionProgress> = [
       'biomeId',
+      'missionId',
+      'roomId',
       'roomLabel',
       'routeStyle',
       'missionName',
@@ -145,7 +149,8 @@ export class SaveManager {
       return null;
     }
 
-    if (stringKeys.some((key) => typeof input[key] !== 'string')) {
+    const stringKeyErrors = stringKeys.some((key) => key !== 'roomId' && key !== 'missionId' && typeof input[key] !== 'string');
+    if (stringKeyErrors) {
       return null;
     }
 
@@ -156,6 +161,8 @@ export class SaveManager {
 
     return {
       biomeId: input.biomeId as string,
+      missionId: typeof input.missionId === 'string' ? input.missionId : '',
+      roomId: typeof input.roomId === 'string' ? input.roomId : '',
       sectorIndex: input.sectorIndex as number,
       sectorsTotal: input.sectorsTotal as number,
       roomLabel: input.roomLabel as string,

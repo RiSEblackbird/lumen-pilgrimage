@@ -29,7 +29,7 @@ export class Game {
   private readonly hud: HudManager;
   private readonly vrUi = new VrWristUi();
   private readonly hubScene: PilgrimsBelfryScene;
-  private readonly combatSandbox = new CombatSandboxDirector();
+  private readonly combatSandbox: CombatSandboxDirector;
 
   private fpsAccumulator = 0;
   private fpsFrameCount = 0;
@@ -59,6 +59,7 @@ export class Game {
       expedition: null
     });
     this.continueSnapshot = slot.expedition;
+    this.combatSandbox = new CombatSandboxDirector(this.continueSnapshot);
     this.menu.setContinueSnapshot(this.continueSnapshot);
 
     container.appendChild(this.renderer.domElement);
@@ -102,8 +103,10 @@ export class Game {
         const snapshot = this.combatSandbox.getPersistenceSnapshot();
         const updated = this.saves.updateExpedition(0, {
           biomeId: snapshot.biomeId,
+          missionId: snapshot.missionId,
           sectorIndex: snapshot.sectorIndex,
           sectorsTotal: snapshot.sectorsTotal,
+          roomId: snapshot.roomId,
           roomLabel: snapshot.roomLabel,
           routeStyle: snapshot.routeStyle,
           missionName: snapshot.missionName,
