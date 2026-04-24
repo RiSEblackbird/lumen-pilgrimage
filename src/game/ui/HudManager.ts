@@ -9,6 +9,8 @@ export interface HudSnapshot {
   readonly enemiesRemaining: number;
   readonly telegraphLabel: string;
   readonly staggeredEnemies: number;
+  readonly missionName: string;
+  readonly pressureLabel: string;
 }
 
 export class HudManager {
@@ -31,11 +33,13 @@ export class HudManager {
 
   render(snapshot: HudSnapshot): void {
     this.root.innerHTML = [
+      `Mission: ${snapshot.missionName}`,
       `HP ${snapshot.health.toFixed(0)} | Guard ${snapshot.guard.toFixed(0)}`,
       `Focus ${snapshot.focus.toFixed(0)} | Overburn ${snapshot.overburn.toFixed(0)}`,
       `Weapon: ${snapshot.weaponName}`,
       `Offhand: ${snapshot.offhandName} | Enemies: ${snapshot.enemiesRemaining} | Staggered: ${snapshot.staggeredEnemies}`,
       `Telegraph: ${snapshot.telegraphLabel}`,
+      `Pressure: ${snapshot.pressureLabel}`,
       `Objective: ${snapshot.objective}`
     ].join('<br/>');
   }
