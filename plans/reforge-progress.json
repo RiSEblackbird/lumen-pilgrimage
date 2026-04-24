@@ -13,7 +13,7 @@
   "next_actions": [
     "wire EncounterDirector to biome room graph generation",
     "replace sandbox wave spawns with room-tag-aware encounter spawning",
-    "persist expedition progress in SaveManager"
+    "surface saved expedition snapshot in Hub continue UI"
   ],
   "smoke_commands": [
     "npm run typecheck",

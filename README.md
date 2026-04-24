@@ -22,7 +22,7 @@ npm run check
 - 新エントリ: `AppBootstrap` → `Game`
 - state machine（Boot〜EndlessCollapse）
 - Desktop/XR 入力抽象（ActionMap）
-- `SaveManager` / `SettingsStore`
+- `SaveManager` / `SettingsStore`（slot0 の初期化 + expedition 進行スナップショット自動保存）
 - `PerfHud`（簡易 FPS 監視）
 - Hub skeleton (`PilgrimsBelfryScene`)
 - HUD / Menu の最小 UI

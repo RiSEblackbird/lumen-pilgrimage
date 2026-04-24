@@ -1,6 +1,7 @@
 import { BIOME_ENCOUNTER_SETS, type BiomeEncounterSet, type EncounterRoomRule } from '../encounters/EncounterRuleSet';
 
 export interface EncounterSnapshot {
+  readonly biomeId: string;
   readonly biomeName: string;
   readonly sectorIndex: number;
   readonly sectorsTotal: number;
@@ -39,6 +40,7 @@ export class EncounterDirector {
   snapshot(rewardWeight = this.currentRoom().rewardWeight): EncounterSnapshot {
     const room = this.currentRoom();
     return {
+      biomeId: this.biome.biomeId,
       biomeName: this.biome.displayName,
       sectorIndex: this.sectorIndex,
       sectorsTotal: this.biome.sectors,
