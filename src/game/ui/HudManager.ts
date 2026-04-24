@@ -7,6 +7,8 @@ export interface HudSnapshot {
   readonly weaponName: string;
   readonly offhandName: string;
   readonly enemiesRemaining: number;
+  readonly telegraphLabel: string;
+  readonly staggeredEnemies: number;
 }
 
 export class HudManager {
@@ -32,7 +34,8 @@ export class HudManager {
       `HP ${snapshot.health.toFixed(0)} | Guard ${snapshot.guard.toFixed(0)}`,
       `Focus ${snapshot.focus.toFixed(0)} | Overburn ${snapshot.overburn.toFixed(0)}`,
       `Weapon: ${snapshot.weaponName}`,
-      `Offhand: ${snapshot.offhandName} | Enemies: ${snapshot.enemiesRemaining}`,
+      `Offhand: ${snapshot.offhandName} | Enemies: ${snapshot.enemiesRemaining} | Staggered: ${snapshot.staggeredEnemies}`,
+      `Telegraph: ${snapshot.telegraphLabel}`,
       `Objective: ${snapshot.objective}`
     ].join('<br/>');
   }

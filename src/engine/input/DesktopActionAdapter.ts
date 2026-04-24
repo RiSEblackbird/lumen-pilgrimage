@@ -8,7 +8,9 @@ const KEY_BINDINGS: Readonly<Record<string, InputAction>> = {
   ShiftLeft: 'dash',
   Space: 'primaryAttack',
   Mouse0: 'primaryAttack',
-  Mouse2: 'offhand',
+  Mouse2: 'guard',
+  KeyF: 'parry',
+  KeyQ: 'offhand',
   KeyE: 'interact',
   Escape: 'openMenu'
 };

@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 2 の初回スライスとして、Hub で戦闘サンドボックス（主武器/副手段/仮敵）を確認できる状態です。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 2 の第2スライスとして、Hub の戦闘サンドボックスで guard/parry/telegraph 読み合いを確認できる状態です。
 
 ## セットアップ
 
@@ -17,7 +17,7 @@ npm run build
 npm run check
 ```
 
-## 現在の実装範囲（Phase 1 + Phase 2 slice1）
+## 現在の実装範囲（Phase 1 + Phase 2 slice2）
 
 - 新エントリ: `AppBootstrap` → `Game`
 - state machine（Boot〜EndlessCollapse）
@@ -30,6 +30,17 @@ npm run check
   - 主武器 2 種（Prism Blade / Censer Carbine）
   - 副手段 2 種（Ward Aegis / Grasp Tether）
   - 仮敵 3 種（Ash Mote / Candle Penitent / Furnace Thurifer）
+  - guard / parry 分離
+  - telegraph 読み合い + stagger リワード
+
+## サンドボックス操作（flat-screen）
+
+- `LMB` / `Space`: primary attack
+- `RMB`: guard
+- `F`: parry
+- `Q`: offhand module
+- `Shift`: dash
+- `E`: loadout rotate
 
 ## 現在のディレクトリ構成（主要）
 
@@ -72,4 +83,4 @@ src/
 
 ## 次フェーズ方針
 
-Phase 2 継続として、guard/parry の明確分離、敵 telegraph の可視化、tutorial room、hit reaction と stagger の実体システムを追加します。
+Phase 2 継続として、tutorial room、hit reaction / damage-stagger の本番分離、敵 archetype 別 telegraph と遭遇型の拡張を進めます。

@@ -1,4 +1,4 @@
-# Architecture: Lumen Pilgrimage Reforge (Phase 2 / slice1)
+# Architecture: Lumen Pilgrimage Reforge (Phase 2 / slice2)
 
 ## レイヤー責務
 
@@ -37,15 +37,16 @@
 ## 分岐条件
 
 - XR セッション中は `XRActionAdapter.isPresenting()` により目標 FPS と objective 文言を切替。
-- 非 XR 時は Desktop 入力スナップショットを `CombatSandboxDirector` に渡し、攻撃/ダッシュ/副手段を処理。
+- 非 XR 時は Desktop 入力スナップショットを `CombatSandboxDirector` に渡し、攻撃/ガード/パリィ/副手段を処理。
 - `CombatSandboxDirector` は rising edge を使い、押下継続で多重発火しない。
+- 敵ごとに telegraph lead を持ち、telegraph 中のみ parry 成功。成功時は stagger と Focus/Overburn 報酬を返す。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 
 ## 拡張ポイント
 
 - `WeaponDefs` / `OffhandDefs` に archetype を追加して戦術幅を段階拡張。
 - `CombatSandboxDirector` を `PlayerCombat` / `DamageSystem` / `GuardSystem` に分割し、本番戦闘へ移行。
-- `ActionMap` に parry, sigil, swap 等のアクションを追加し Desktop/XR を等価拡張。
+- `ActionMap` を起点に、sigil/weapon-alt/lock-on を Desktop/XR 双方へ等価拡張。
 - `PilgrimsBelfryScene` を Hub 機能（craft, codex, mode select）へ分解。
 
 ## 旧構成の扱い

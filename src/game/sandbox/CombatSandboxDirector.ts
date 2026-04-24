@@ -9,6 +9,8 @@ interface SandboxEnemy {
   readonly damage: number;
   attackTimer: number;
   readonly attackInterval: number;
+  readonly telegraphLead: number;
+  staggerTimer: number;
 }
 
 export interface CombatSandboxSnapshot {
@@ -20,6 +22,8 @@ export interface CombatSandboxSnapshot {
   readonly weaponName: string;
   readonly offhandName: string;
   readonly enemiesRemaining: number;
+  readonly telegraphLabel: string;
+  readonly staggeredEnemies: number;
 }
 
 const MAX_HEALTH = 100;
@@ -51,6 +55,8 @@ export class CombatSandboxDirector {
       moveRight: false,
       dash: false,
       primaryAttack: false,
+      guard: false,
+      parry: false,
       offhand: false,
       interact: false,
       openMenu: false
@@ -71,7 +77,9 @@ export class CombatSandboxDirector {
       objective: this.objective,
       weaponName: WEAPON_DEFS[this.weaponIndex].displayName,
       offhandName: OFFHAND_DEFS[this.offhandIndex].displayName,
-      enemiesRemaining: this.enemies.length
+      enemiesRemaining: this.enemies.length,
+      telegraphLabel: this.getTelegraphLabel(),
+      staggeredEnemies: this.enemies.filter((enemy) => enemy.staggerTimer > 0).length
     };
   }
 
@@ -88,6 +96,10 @@ export class CombatSandboxDirector {
 
     if (this.isRisingEdge(actions.offhand, this.previousActions.offhand)) {
       this.activateOffhand();
+    }
+
+    if (this.isRisingEdge(actions.parry, this.previousActions.parry)) {
+      this.tryParry();
     }
 
     if (this.isRisingEdge(actions.interact, this.previousActions.interact)) {
@@ -152,12 +164,19 @@ export class CombatSandboxDirector {
 
   private resolveEnemyPressure(deltaSeconds: number, actions: ActionState): void {
     for (const enemy of this.enemies) {
+      if (enemy.staggerTimer > 0) {
+        enemy.staggerTimer = Math.max(0, enemy.staggerTimer - deltaSeconds);
+        if (enemy.staggerTimer > 0) {
+          continue;
+        }
+      }
+
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer > 0) {
         continue;
       }
 
-      const isGuarding = actions.offhand;
+      const isGuarding = actions.guard;
       if (isGuarding) {
         this.guard = Math.max(0, this.guard - enemy.damage * 0.65);
         this.overburn = Math.min(MAX_OVERBURN, this.overburn + 5);
@@ -183,24 +202,57 @@ export class CombatSandboxDirector {
     }
   }
 
-  private createEnemy(id: string, label: string, health: number, damage: number, attackInterval: number): SandboxEnemy {
+  private createEnemy(
+    id: string,
+    label: string,
+    health: number,
+    damage: number,
+    attackInterval: number,
+    telegraphLead = 0.55
+  ): SandboxEnemy {
     return {
       id,
       label,
       health,
       damage,
       attackTimer: attackInterval,
-      attackInterval
+      attackInterval,
+      telegraphLead,
+      staggerTimer: 0
     };
   }
 
   private spawnWave(): void {
     this.enemies.splice(0, this.enemies.length);
     this.enemies.push(
-      this.createEnemy('ash-mote', 'Ash Mote', 30, 8, 2.2),
-      this.createEnemy('candle-penitent', 'Candle Penitent', 42, 10, 3),
-      this.createEnemy('furnace-thurifer', 'Furnace Thurifer', 60, 14, 4.4)
+      this.createEnemy('ash-mote', 'Ash Mote', 30, 8, 2.2, 0.45),
+      this.createEnemy('candle-penitent', 'Candle Penitent', 42, 10, 3, 0.55),
+      this.createEnemy('furnace-thurifer', 'Furnace Thurifer', 60, 14, 4.4, 0.75)
     );
+  }
+
+  private tryParry(): void {
+    const telegraphedEnemy = this.enemies.find((enemy) => enemy.attackTimer > 0 && enemy.attackTimer <= enemy.telegraphLead);
+    if (!telegraphedEnemy) {
+      this.guard = Math.max(0, this.guard - 10);
+      this.objective = 'Parry failed: no active telegraph. Guard destabilized.';
+      return;
+    }
+
+    telegraphedEnemy.attackTimer = telegraphedEnemy.attackInterval + 0.8;
+    telegraphedEnemy.staggerTimer = 1.4;
+    this.focus = Math.min(MAX_FOCUS, this.focus + 14);
+    this.overburn = Math.min(MAX_OVERBURN, this.overburn + 16);
+    this.objective = `Perfect parry on ${telegraphedEnemy.label}. Enemy staggered and exposed.`;
+  }
+
+  private getTelegraphLabel(): string {
+    const telegraphedEnemy = this.enemies.find((enemy) => enemy.attackTimer > 0 && enemy.attackTimer <= enemy.telegraphLead);
+    if (!telegraphedEnemy) {
+      return 'No immediate telegraph';
+    }
+
+    return `${telegraphedEnemy.label} attack incoming`;
   }
 
   private isRisingEdge(current: boolean, previous: boolean): boolean {
