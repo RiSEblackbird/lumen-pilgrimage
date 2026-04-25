@@ -1,6 +1,7 @@
 import type { GameState } from '../../game/state/GameState';
 import { DEFAULT_RELIC_MODIFIERS } from '../../game/items/RelicEffects';
 import type { RelicStatModifiers } from '../../game/items/RelicEffects';
+import { normalizeUnlockedBiomes } from '../../game/state/CampaignBiomes';
 
 export interface ExpeditionProgress {
   readonly biomeId: string;
@@ -184,7 +185,7 @@ export class SaveManager {
     return {
       slotId: input.slotId,
       state: input.state,
-      unlockedBiomes: input.unlockedBiomes,
+      unlockedBiomes: normalizeUnlockedBiomes(input.unlockedBiomes),
       expedition,
       metaProgress,
       updatedAtIso: input.updatedAtIso
