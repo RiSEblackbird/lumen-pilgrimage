@@ -4,6 +4,7 @@ import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
 import { RewardDirector, type RewardChoiceState } from '../director/RewardDirector';
 import { ArenaMutationDirector } from '../director/ArenaMutationDirector';
+import { BossArenaAudioDirector } from '../director/BossArenaAudioDirector';
 import {
   getBossContractForBiome,
   resolveBossPhase,
@@ -106,6 +107,7 @@ export class CombatSandboxDirector {
   private readonly encounter = new EncounterDirector();
   private readonly bossActor = new BossActorDirector();
   private readonly arenaMutation = new ArenaMutationDirector();
+  private readonly arenaAudio = new BossArenaAudioDirector();
   private latestEncounter = this.encounter.snapshot();
 
   private enemySerial = 0;
@@ -138,6 +140,7 @@ export class CombatSandboxDirector {
   private bossLabel = 'No Warden contact';
   private bossHealthLabel = 'Boss HP: -';
   private arenaMutationLabel = 'Arena stable';
+  private arenaAudioLabel = 'Audio reactive bus idle';
   private hazardTickAccumulator = 0;
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
   private ashSightCooldown = 0;
@@ -235,8 +238,10 @@ export class CombatSandboxDirector {
     this.bossLabel = 'No Warden contact';
     this.bossHealthLabel = 'Boss HP: -';
     this.arenaMutationLabel = 'Arena stable';
+    this.arenaAudioLabel = 'Audio reactive bus idle';
     this.bossActor.stop();
     this.arenaMutation.stop();
+    this.arenaAudio.stop();
     this.hazardTickAccumulator = 0;
     this.ashSightCooldown = 0;
     this.ashSightRevealTimer = 0;
@@ -293,7 +298,7 @@ export class CombatSandboxDirector {
       contractLabel: this.getContractLabel(),
       bossLabel: this.bossLabel,
       bossHealthLabel: this.bossHealthLabel,
-      arenaMutationLabel: this.arenaMutationLabel,
+      arenaMutationLabel: `${this.arenaMutationLabel} / ${this.arenaAudioLabel}`,
       loadoutPoolLabel: this.loadoutPoolLabel,
       ashSightLabel: this.getAshSightLabel()
     };
@@ -677,10 +682,12 @@ export class CombatSandboxDirector {
       this.bossPhaseRule = null;
       this.bossActor.stop();
       this.arenaMutation.stop();
+      this.arenaAudio.stop();
       this.bossPhaseElapsed = 0;
       this.bossLabel = 'No Warden contact';
       this.bossHealthLabel = 'Boss HP: -';
       this.arenaMutationLabel = 'Arena stable';
+      this.arenaAudioLabel = 'Audio reactive bus idle';
       this.bossPhase = 0;
       this.hazardTickAccumulator = 0;
       return;
@@ -693,19 +700,23 @@ export class CombatSandboxDirector {
     if (!this.bossContract || !this.bossPhaseRule) {
       this.bossActor.stop();
       this.arenaMutation.stop();
+      this.arenaAudio.stop();
       this.bossLabel = 'Unknown Warden signature';
       this.bossHealthLabel = 'Boss HP: unknown';
       this.arenaMutationLabel = 'Arena mutation unknown';
+      this.arenaAudioLabel = 'Audio reactive bus uncertain';
       this.objective = 'Warden trace detected. Continue pressure to extract phase data.';
       return;
     }
     this.bossActor.begin(this.bossContract, this.bossPhaseRule);
     this.arenaMutation.enterContract(this.bossContract, this.bossPhaseRule);
+    this.arenaAudio.enterContract(this.bossContract, this.bossPhaseRule, this.overburn);
     const bossSnapshot = this.bossActor.snapshot();
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${this.bossPhase}/${this.bossContract.phases.length} (${this.bossPhaseRule.title})`;
     this.bossHealthLabel = `Boss HP: ${bossSnapshot.maxHealth > 0 ? ((bossSnapshot.currentHealth / bossSnapshot.maxHealth) * 100).toFixed(0) : '0'}%`;
     const arenaSnapshot = this.arenaMutation.snapshot();
     this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel}`;
+    this.arenaAudioLabel = this.arenaAudio.snapshot().mixLabel;
     this.objective = `${this.bossContract.bossName} 接触。${this.bossPhaseRule.mechanicSummary}`;
   }
 
@@ -720,10 +731,12 @@ export class CombatSandboxDirector {
     this.bossPhaseRule = resolvedPhase;
     this.bossActor.setPhaseRule(resolvedPhase);
     this.arenaMutation.applyPhaseRule(resolvedPhase);
+    this.arenaAudio.applyPhaseRule(resolvedPhase, this.overburn);
     this.bossPhase = resolvedPhase.index;
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${resolvedPhase.index}/${this.bossContract.phases.length} (${resolvedPhase.title})`;
     const arenaSnapshot = this.arenaMutation.snapshot();
-    this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel}`;
+    this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel} / ${this.arenaAudio.snapshot().pulseCallout}`;
+    this.arenaAudioLabel = this.arenaAudio.snapshot().mixLabel;
     if (phaseChanged) {
       this.objective = `${this.bossContract.bossName} phase shift: ${resolvedPhase.mechanicSummary}`;
       this.hazardTickAccumulator = 0;
@@ -759,7 +772,10 @@ export class CombatSandboxDirector {
       return;
     }
 
-    this.objective = `${this.bossPhaseRule.title}: ${pulseCallout}. ${this.bossPhaseRule.mechanicSummary}`;
+    const arenaSnapshot = this.arenaMutation.snapshot();
+    const audioCallout = this.arenaAudio.onArenaPulse(arenaSnapshot);
+    this.objective = `${this.bossPhaseRule.title}: ${pulseCallout}. ${audioCallout}. ${this.bossPhaseRule.mechanicSummary}`;
+    this.arenaAudioLabel = this.arenaAudio.snapshot().mixLabel;
   }
 
   private applyArenaMutationHazards(deltaSeconds: number): void {
@@ -794,7 +810,9 @@ export class CombatSandboxDirector {
     ]
       .filter((value): value is string => value !== null)
       .join(', ');
-    this.objective = `${this.bossPhaseRule.title}: ${pressureSummary}. ${this.bossPhaseRule.mechanicSummary}`;
+    const audioHazardCallout = this.arenaAudio.onHazardTick(this.bossPhaseRule);
+    this.objective = `${this.bossPhaseRule.title}: ${pressureSummary}. ${audioHazardCallout}. ${this.bossPhaseRule.mechanicSummary}`;
+    this.arenaAudioLabel = this.arenaAudio.snapshot().mixLabel;
   }
 
   private resolveBossContract(biomeId: string): BossContract | null {

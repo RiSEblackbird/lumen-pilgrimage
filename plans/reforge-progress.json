@@ -20,14 +20,15 @@
     "phase5-mode-select",
     "phase5-xr-controller-pointer",
     "phase5-save-slots",
-    "phase5-hub-vr-hand-affordance"
-  ],
-  "in_progress": [
+    "phase5-hub-vr-hand-affordance",
     "phase5-hub-biome-boss-foundation"
   ],
+  "in_progress": [
+    "phase5-campaign-content-scaleout"
+  ],
   "next_actions": [
+    "hook biome-specific audio motifs to real MusicDirector stem buses once audio runtime lands",
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
-    "integrate arena mutation callouts with biome-specific audio reactive hooks",
     "expand hub terminals with per-terminal contextual world widgets beyond pointer lock beacons"
   ],
   "smoke_commands": [
