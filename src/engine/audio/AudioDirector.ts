@@ -1,31 +1,52 @@
 import type { AudioListener } from 'three';
 import type { MusicMixSnapshot } from './MusicDirector';
 
+export type MusicStemId = 'exploration' | 'threat' | 'combat' | 'clutch' | 'boss';
+
 interface StemState {
   current: number;
   target: number;
+  readonly gainNode: GainNode;
 }
+
+interface RegisteredStemSource {
+  readonly stem: MusicStemId;
+  readonly output: AudioNode;
+}
+
+const STEM_IDS: readonly MusicStemId[] = ['exploration', 'threat', 'combat', 'clutch', 'boss'] as const;
 
 /**
  * Runtime music stem gain router.
  *
- * This class intentionally keeps implementation lightweight until authored
- * WebAudio sources land. It still provides deterministic smoothing and a
- * single source of truth for stem bus levels so HUD labels and runtime audio
- * behavior stay in sync.
+ * `registerStemSource` を使えば、authored WebAudio source graph（AudioBufferSource,
+ * MediaElementAudioSource など）を stem ごとの gain bus に接続できる。
  */
 export class AudioDirector {
-  private readonly stems: Record<'exploration' | 'threat' | 'combat' | 'clutch' | 'boss', StemState> = {
-    exploration: { current: 1, target: 1 },
-    threat: { current: 0, target: 0 },
-    combat: { current: 0, target: 0 },
-    clutch: { current: 0, target: 0 },
-    boss: { current: 0, target: 0 }
-  };
-
+  private readonly stems: Record<MusicStemId, StemState>;
+  private readonly sourceRegistry = new Map<string, RegisteredStemSource>();
   private readonly smoothingPerSecond = 8;
 
-  constructor(private readonly listener: AudioListener) {}
+  constructor(private readonly listener: AudioListener) {
+    const context = this.listener.context;
+    const listenerInput = this.listener.getInput();
+
+    const stemEntries = STEM_IDS.map((stemId) => {
+      const gainNode = context.createGain();
+      gainNode.gain.value = stemId === 'exploration' ? 1 : 0;
+      gainNode.connect(listenerInput);
+      return [
+        stemId,
+        {
+          current: gainNode.gain.value,
+          target: gainNode.gain.value,
+          gainNode
+        }
+      ] as const;
+    });
+
+    this.stems = Object.fromEntries(stemEntries) as Record<MusicStemId, StemState>;
+  }
 
   applyMusicMix(snapshot: MusicMixSnapshot): void {
     this.stems.exploration.target = snapshot.stems.exploration;
@@ -43,18 +64,42 @@ export class AudioDirector {
     this.stems.boss.target = 0;
   }
 
+  registerStemSource(sourceId: string, stem: MusicStemId, output: AudioNode): void {
+    this.unregisterStemSource(sourceId);
+    output.connect(this.stems[stem].gainNode);
+    this.sourceRegistry.set(sourceId, { stem, output });
+  }
+
+  unregisterStemSource(sourceId: string): void {
+    const registered = this.sourceRegistry.get(sourceId);
+    if (!registered) {
+      return;
+    }
+    registered.output.disconnect(this.stems[registered.stem].gainNode);
+    this.sourceRegistry.delete(sourceId);
+  }
+
   tick(deltaSeconds: number): void {
     const t = Math.min(1, Math.max(0, deltaSeconds * this.smoothingPerSecond));
-    this.stems.exploration.current = this.lerp(this.stems.exploration.current, this.stems.exploration.target, t);
-    this.stems.threat.current = this.lerp(this.stems.threat.current, this.stems.threat.target, t);
-    this.stems.combat.current = this.lerp(this.stems.combat.current, this.stems.combat.target, t);
-    this.stems.clutch.current = this.lerp(this.stems.clutch.current, this.stems.clutch.target, t);
-    this.stems.boss.current = this.lerp(this.stems.boss.current, this.stems.boss.target, t);
+    const contextTime = this.listener.context.currentTime;
 
-    // Keep listener volume authoritative for global master from settings while
-    // still exercising bus updates for future source routing.
+    for (const stemId of STEM_IDS) {
+      const stemState = this.stems[stemId];
+      stemState.current = this.lerp(stemState.current, stemState.target, t);
+      stemState.gainNode.gain.setValueAtTime(stemState.current, contextTime);
+    }
+
     const currentMaster = this.listener.getMasterVolume();
     this.listener.setMasterVolume(currentMaster);
+  }
+
+  dispose(): void {
+    for (const sourceId of Array.from(this.sourceRegistry.keys())) {
+      this.unregisterStemSource(sourceId);
+    }
+    for (const stemId of STEM_IDS) {
+      this.stems[stemId].gainNode.disconnect();
+    }
   }
 
   private lerp(from: number, to: number, t: number): number {
