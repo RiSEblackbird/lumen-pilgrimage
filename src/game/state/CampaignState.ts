@@ -1,4 +1,10 @@
-const FINAL_ZONE_ID = 'Choir of the Broken Sun';
+import {
+  FINAL_BIOME_ID,
+  campaignBiomeLabel,
+  nextCampaignBiomeId,
+  normalizeCampaignBiomeId,
+  normalizeUnlockedBiomes
+} from './CampaignBiomes';
 
 export interface CampaignSnapshot {
   readonly unlockedBiomes: readonly string[];
@@ -10,18 +16,15 @@ export class CampaignState {
   private unlockedBiomes: string[];
 
   constructor(unlockedBiomes: readonly string[]) {
-    this.unlockedBiomes = [...new Set(unlockedBiomes)];
-    if (this.unlockedBiomes.length === 0) {
-      this.unlockedBiomes = ['Ember Ossuary'];
-    }
+    this.unlockedBiomes = normalizeUnlockedBiomes(unlockedBiomes);
   }
 
   getSnapshot(): CampaignSnapshot {
-    const finalZoneUnlocked = this.unlockedBiomes.includes(FINAL_ZONE_ID);
-    const nextBiome = this.nextLockedBiomeLabel();
+    const finalZoneUnlocked = this.unlockedBiomes.includes(FINAL_BIOME_ID);
+    const nextBiomeId = nextCampaignBiomeId(this.unlockedBiomes);
     const currentObjective = finalZoneUnlocked
       ? 'Final Zone を攻略し Broken Sun Choir を討伐せよ'
-      : `次の攻略対象: ${nextBiome}`;
+      : `次の攻略対象: ${campaignBiomeLabel(nextBiomeId)}`;
 
     return {
       unlockedBiomes: [...this.unlockedBiomes],
@@ -31,28 +34,13 @@ export class CampaignState {
   }
 
   unlockBiome(biomeId: string): void {
-    if (!this.unlockedBiomes.includes(biomeId)) {
-      this.unlockedBiomes.push(biomeId);
+    const normalized = normalizeCampaignBiomeId(biomeId);
+    if (!this.unlockedBiomes.includes(normalized)) {
+      this.unlockedBiomes.push(normalized);
     }
   }
 
   replaceUnlockedBiomes(next: readonly string[]): void {
-    this.unlockedBiomes = [...new Set(next)];
-    if (this.unlockedBiomes.length === 0) {
-      this.unlockedBiomes = ['Ember Ossuary'];
-    }
-  }
-
-  private nextLockedBiomeLabel(): string {
-    const campaignOrder = [
-      'Ember Ossuary',
-      'Moon Reservoir',
-      'Birch Astrarium',
-      'Obsidian Artery',
-      'Dawn Foundry',
-      FINAL_ZONE_ID
-    ];
-
-    return campaignOrder.find((biome) => !this.unlockedBiomes.includes(biome)) ?? FINAL_ZONE_ID;
+    this.unlockedBiomes = normalizeUnlockedBiomes(next);
   }
 }

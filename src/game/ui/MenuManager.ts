@@ -4,6 +4,7 @@ import { WEAPON_DEFS } from '../items/WeaponDefs';
 import { OFFHAND_DEFS } from '../items/OffhandDefs';
 import { SIGIL_DEFS } from '../items/SigilDefs';
 import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
+import { campaignBiomeLabel } from '../state/CampaignBiomes';
 
 export interface ContinueSnapshot {
   readonly biomeId: string;
@@ -187,7 +188,7 @@ export class MenuManager {
 
     this.root.innerHTML = [
       `State: ${this.state}`,
-      `Continue: ${snapshot.biomeId} / Sector ${snapshot.sectorIndex}/${snapshot.sectorsTotal}`,
+      `Continue: ${campaignBiomeLabel(snapshot.biomeId)} / Sector ${snapshot.sectorIndex}/${snapshot.sectorsTotal}`,
       `Room: ${snapshot.roomLabel} / Route ${snapshot.routeStyle}`,
       `RoomID: ${snapshot.roomId || 'legacy-save'}`,
       `Mission: ${snapshot.missionName} (${snapshot.missionId || 'legacy-save'})`,
@@ -217,7 +218,7 @@ export class MenuManager {
 
     if (snapshot) {
       const continueMeta = document.createElement('div');
-      continueMeta.textContent = `Continue: ${snapshot.biomeId} / ${snapshot.roomLabel}`;
+      continueMeta.textContent = `Continue: ${campaignBiomeLabel(snapshot.biomeId)} / ${snapshot.roomLabel}`;
       continueMeta.style.fontSize = '12px';
       continueMeta.style.opacity = '0.88';
       panel.append(continueMeta);
@@ -251,7 +252,7 @@ export class MenuManager {
 
     const hub = this.hub;
     if (hub) {
-      panel.append(this.createInfoLabel(`Biomes: ${hub.unlockedBiomes.join(', ')}`));
+      panel.append(this.createInfoLabel(`Biomes: ${hub.unlockedBiomes.map((biome) => campaignBiomeLabel(biome)).join(', ')}`));
       panel.append(this.createInfoLabel(`Lumen Ash ${hub.lumenAsh} | Choir Thread ${hub.choirThread}`));
       panel.append(this.createInfoLabel(`Saint Glass ${hub.saintGlass} | Echo Script ${hub.echoScript}`));
       panel.append(this.createInfoLabel(this.buildUnlockSummaryLabel('Weapons', hub.unlockedWeapons, WEAPON_DEFS)));
@@ -262,7 +263,7 @@ export class MenuManager {
     }
 
     if (snapshot) {
-      panel.append(this.createInfoLabel(`Resume-ready: ${snapshot.biomeId} / ${snapshot.roomLabel}`));
+      panel.append(this.createInfoLabel(`Resume-ready: ${campaignBiomeLabel(snapshot.biomeId)} / ${snapshot.roomLabel}`));
     }
 
     panel.append(this.createCommandButton('Expedition Prep', 'open-expedition-prep'));
@@ -290,13 +291,13 @@ export class MenuManager {
       return panel;
     }
 
-    const selectedBiomeLabel = prep.unlockedBiomes.includes(prep.selectedBiomeId) ? prep.selectedBiomeId : prep.unlockedBiomes[0] ?? 'ember-ossuary';
+    const selectedBiomeId = prep.unlockedBiomes.includes(prep.selectedBiomeId) ? prep.selectedBiomeId : prep.unlockedBiomes[0] ?? 'ember-ossuary';
     const selectedMission = MISSION_TYPE_DEFS.find((mission) => mission.id === prep.selectedMissionId) ?? MISSION_TYPE_DEFS[0];
     const selectedWeapon = WEAPON_DEFS.find((weapon) => weapon.id === prep.selectedWeaponId) ?? WEAPON_DEFS[0];
     const selectedOffhand = OFFHAND_DEFS.find((offhand) => offhand.id === prep.selectedOffhandId) ?? OFFHAND_DEFS[0];
     const selectedSigil = SIGIL_DEFS.find((sigil) => sigil.id === prep.selectedSigilId) ?? SIGIL_DEFS[0];
 
-    panel.append(this.createInfoLabel(`Biome: ${selectedBiomeLabel}`));
+    panel.append(this.createInfoLabel(`Biome: ${campaignBiomeLabel(selectedBiomeId)}`));
     panel.append(this.createCommandButton('Cycle Biome', 'prep-cycle-biome'));
     panel.append(this.createInfoLabel(`Mission: ${selectedMission.displayName}`));
     panel.append(this.createCommandButton('Cycle Mission', 'prep-cycle-mission'));

@@ -11,6 +11,7 @@ import { GameStateMachine } from '../game/state/GameStateMachine';
 import { CampaignState } from '../game/state/CampaignState';
 import { ExpeditionState } from '../game/state/ExpeditionState';
 import { MetaProgressionState } from '../game/state/MetaProgressionState';
+import { FIRST_BIOME_ID, normalizeUnlockedBiomes } from '../game/state/CampaignBiomes';
 import { HudManager } from '../game/ui/HudManager';
 import { MenuManager, type ContinueSnapshot, type HubViewModel, type MenuCommand, type SettingsViewModel } from '../game/ui/MenuManager';
 import type { ExpeditionPrepViewModel } from '../game/ui/MenuManager';
@@ -71,7 +72,7 @@ export class Game {
     this.settings.save(this.settingsViewModel);
     const slot = this.saves.loadOrCreate(0, {
       state: 'Hub',
-      unlockedBiomes: ['Ember Ossuary'],
+      unlockedBiomes: [FIRST_BIOME_ID],
       expedition: null,
       metaProgress: DEFAULT_META_PROGRESS
     });
@@ -391,7 +392,7 @@ export class Game {
   private startNewGame(): void {
     const slot = this.saves.resetSlot(0, {
       state: 'Hub',
-      unlockedBiomes: ['Ember Ossuary'],
+      unlockedBiomes: [FIRST_BIOME_ID],
       expedition: null,
       metaProgress: DEFAULT_META_PROGRESS
     });
@@ -455,8 +456,9 @@ export class Game {
   }
 
   private toHubViewModel(unlockedBiomes: readonly string[], meta: MetaProgress): HubViewModel {
+    const normalizedBiomes = normalizeUnlockedBiomes(unlockedBiomes);
     return {
-      unlockedBiomes,
+      unlockedBiomes: normalizedBiomes,
       lumenAsh: Math.max(0, Math.floor(meta.lumenAsh)),
       choirThread: Math.max(0, Math.floor(meta.choirThread)),
       saintGlass: Math.max(0, Math.floor(meta.saintGlass)),
