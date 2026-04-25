@@ -18,6 +18,7 @@ import { DEFAULT_RELIC_MODIFIERS, buildRelicStatModifiers, type RelicStatModifie
 import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 import type { RunMode } from '../state/RunMode';
+import { resolveDifficulty, type DifficultyId } from '../state/DifficultyState';
 import type { ContinueSnapshot } from '../ui/MenuManager';
 
 export interface LoadoutAvailability {
@@ -141,6 +142,7 @@ export class CombatSandboxDirector {
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
   private ashSightCooldown = 0;
   private ashSightRevealTimer = 0;
+  private difficultyId: DifficultyId = 'trial';
   private expeditionPlan: ExpeditionPlan = {
     runMode: 'campaign',
     biomeId: 'ember-ossuary',
@@ -195,6 +197,11 @@ export class CombatSandboxDirector {
       offhandId: OFFHAND_DEFS[this.offhandIndex].id,
       sigilId: SIGIL_DEFS[this.sigilIndex].id
     };
+  }
+
+
+  setDifficulty(difficultyId: DifficultyId): void {
+    this.difficultyId = difficultyId;
   }
 
   getExpeditionPlan(): ExpeditionPlan {
@@ -642,15 +649,17 @@ export class CombatSandboxDirector {
       sectorIndex: this.latestEncounter.sectorIndex
     });
 
+    const difficulty = resolveDifficulty(this.difficultyId);
+
     for (const template of waveTemplates) {
-      const attackIntervalMultiplier = this.bossPhaseRule?.attackIntervalMultiplier ?? 1;
-      const telegraphLeadMultiplier = this.bossPhaseRule?.telegraphLeadMultiplier ?? 1;
+      const attackIntervalMultiplier = (this.bossPhaseRule?.attackIntervalMultiplier ?? 1) * difficulty.enemyAttackIntervalMultiplier;
+      const telegraphLeadMultiplier = (this.bossPhaseRule?.telegraphLeadMultiplier ?? 1) * difficulty.enemyTelegraphMultiplier;
       this.enemies.push(
         this.createEnemy(
           template.archetypeId,
           template.label,
-          template.baseHealth,
-          template.baseDamage,
+          Math.round(template.baseHealth * difficulty.enemyHealthMultiplier),
+          Math.round(template.baseDamage * difficulty.enemyDamageMultiplier),
           template.attackInterval * attackIntervalMultiplier,
           {
             meleeWeight: template.meleeWeight,
@@ -856,7 +865,8 @@ export class CombatSandboxDirector {
 
   private getContractLabel(): string {
     const mission = MISSION_TYPE_DEFS[this.missionIndex];
-    return `${mission.displayName} (${mission.routeBias.join(' > ')})`;
+    const difficulty = resolveDifficulty(this.difficultyId).label;
+    return `${mission.displayName} (${mission.routeBias.join(' > ')}) / Difficulty: ${difficulty}`;
   }
 
 

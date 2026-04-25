@@ -35,8 +35,8 @@ npm run check
 
 - legacy ritual/glyph/export/codex 実装（`RitualState` / `GlyphSystem` / `DreamExporter` / `Sanctuary` ほか）を `src/` から削除し、新基盤のみを保守対象へ整理
 - New Game 時の slot reset と sandbox 初期化
-- Settings パネル（snap turn / seated mode / reduce flashing / UI scale / master volume）と保存
-- Settings の実ランタイム反映（UI scale: HUD/Menu/PerfHud、master volume: AudioListener、XR comfort: wrist UI 表示、reduce flashing: hub scene motion）
+- Settings パネル（snap turn / seated mode / reduce flashing / UI scale / master volume / difficulty）と保存
+- Settings の実ランタイム反映（UI scale: HUD/Menu/PerfHud、master volume: AudioListener、XR comfort: wrist UI 表示、reduce flashing: hub scene motion、difficulty: combat sandbox enemy scaling）
 - Credits パネルと MainMenu 復帰導線
 - Hub パネルで恒久通貨（Lumen Ash / Choir Thread / Saint Glass / Echo Script）と unlock 状態を表示
 - Hub パネルで loadout 候補の解放済み/未解放一覧（Weapons / Offhands / Sigils）を表示し、出撃前に unlock 影響を確認可能
@@ -65,6 +65,7 @@ npm run check
   - boss 戦中に arena device pulse callout を objective へ注入し、phase 情報の読解レイヤーを追加
   - HUD に boss HP readout と boss 専用 telegraph を表示
   - `Ash Sight`（Focus 消費 + cooldown）を tactical reveal として追加し、telegraph/route 読解を補助
+  - difficulty layer（Pilgrim / Trial / Martyr）を追加し、敵HP/被ダメージ圧/telegraph 速度を mode 横断で調整
 
 ## サンドボックス操作（flat-screen）
 
