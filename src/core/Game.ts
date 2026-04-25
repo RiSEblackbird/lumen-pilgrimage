@@ -47,6 +47,8 @@ export class Game {
   private hubViewModel: HubViewModel;
   private expeditionPrep: ExpeditionPrepViewModel;
   private runActive = false;
+  private prevInteractPressed = false;
+  private prevOffhandPressed = false;
   private readonly campaignState: CampaignState;
   private readonly expeditionState = new ExpeditionState();
   private readonly metaState: MetaProgressionState;
@@ -90,6 +92,7 @@ export class Game {
     this.menu.setHub(this.hubViewModel);
     this.menu.setExpeditionPrep(this.expeditionPrep);
     this.applyRuntimeSettings();
+    this.syncHubWristUi();
 
     container.appendChild(this.renderer.domElement);
     container.appendChild(VRButton.createButton(this.renderer));
@@ -113,9 +116,12 @@ export class Game {
       this.hubScene.tick(elapsed);
       this.renderer.render(this.scene, this.camera);
       this.updateDebug(delta);
+      const desktopActions = this.desktopInput.snapshot();
+      this.handleHubTerminalInput(desktopActions);
       this.handleMenuCommands();
 
       if (!this.runActive) {
+        this.syncHubWristUi();
         this.hud.render({
           health: 100,
           guard: 100,
@@ -143,8 +149,8 @@ export class Game {
         return;
       }
 
-      const actions = this.desktopInput.snapshot();
-      const sandbox = this.combatSandbox.update(actions, delta);
+      const sandbox = this.combatSandbox.update(desktopActions, delta);
+      this.vrUi.setStatus('In Expedition');
       const objective = this.xrInput.isPresenting()
         ? `${sandbox.objective} / VR Wrist: ${this.vrUi.getStatus()}`
         : sandbox.objective;
@@ -334,6 +340,7 @@ export class Game {
     this.settings.save(this.settingsViewModel);
     this.menu.setSettings(this.settingsViewModel);
     this.applyRuntimeSettings();
+    this.syncHubWristUi();
   }
 
   private applyRuntimeSettings(): void {
@@ -347,6 +354,7 @@ export class Game {
     });
     this.hubScene.setReduceFlashing(this.settingsViewModel.reduceFlashing);
     this.vrUi.applySettings(this.xrInput.getComfortStatus(), this.settingsViewModel.masterVolume);
+    this.syncHubWristUi();
   }
 
   private adjustUiScale(delta: number): void {
@@ -513,6 +521,7 @@ export class Game {
       offhandId: next.selectedOffhandId,
       sigilId: next.selectedSigilId
     });
+    this.syncHubWristUi();
   }
 
   private rotateString(options: readonly string[], current: string): string {
@@ -539,6 +548,52 @@ export class Game {
     if (this.states.current === 'ExpeditionPrep') {
       this.states.transition('InExpedition');
       this.persistCurrentState();
+    }
+  }
+
+
+  private handleHubTerminalInput(actions: { readonly interact: boolean; readonly offhand: boolean }): void {
+    const canUseHubTerminal = !this.runActive && this.states.current === 'Hub';
+    if (!canUseHubTerminal) {
+      this.prevInteractPressed = actions.interact;
+      this.prevOffhandPressed = actions.offhand;
+      return;
+    }
+
+    const cyclePressed = actions.offhand && !this.prevOffhandPressed;
+    if (cyclePressed) {
+      const selectedLabel = this.hubScene.cycleHubTerminal();
+      this.vrUi.setHubTerminalLabel(selectedLabel);
+    }
+
+    const interactPressed = actions.interact && !this.prevInteractPressed;
+    if (interactPressed) {
+      const terminalAction = this.hubScene.activateHubTerminal();
+      this.handleMetaMenu(terminalAction);
+    }
+
+    this.prevInteractPressed = actions.interact;
+    this.prevOffhandPressed = actions.offhand;
+  }
+
+  private syncHubWristUi(): void {
+    const selectedMission = MISSION_TYPE_DEFS.find((mission) => mission.id === this.expeditionPrep.selectedMissionId);
+    const missionLabel = selectedMission?.displayName ?? this.expeditionPrep.selectedMissionId;
+    this.vrUi.setHubTerminalLabel(this.hubScene.getSelectedHubTerminalLabel());
+    this.vrUi.setPrepSummary(`${this.expeditionPrep.selectedWeaponId} / ${this.expeditionPrep.selectedOffhandId} / ${missionLabel}`);
+
+    if (this.states.current === 'Hub') {
+      this.vrUi.setStatus('Hub - Terminal Ready');
+      return;
+    }
+
+    if (this.states.current === 'ExpeditionPrep') {
+      this.vrUi.setStatus('Expedition Prep');
+      return;
+    }
+
+    if (!this.runActive) {
+      this.vrUi.setStatus(this.states.current);
     }
   }
 

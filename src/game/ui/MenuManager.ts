@@ -266,6 +266,7 @@ export class MenuManager {
       panel.append(this.createInfoLabel(`Resume-ready: ${campaignBiomeLabel(snapshot.biomeId)} / ${snapshot.roomLabel}`));
     }
 
+    panel.append(this.createInfoLabel('Hub terminal controls: Q cycle terminal / E interact'));
     panel.append(this.createCommandButton('Expedition Prep', 'open-expedition-prep'));
     panel.append(this.createCommandButton('Open Meta Upgrades', 'open-meta-upgrade'));
     panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));

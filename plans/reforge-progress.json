@@ -6,22 +6,23 @@
     "phase1-foundation",
     "phase2-combat-sandbox",
     "phase3-pressure-mission-reward",
-    "phase4-room-graph-branching",
-    "phase4-contract-route-save",
-    "phase4-continue-resume-boss-stub",
-    "phase4-continue-hardening",
-    "phase4-hub-meta-progression",
-    "phase4-boss-contracts",
     "phase4-biome-content-expansion",
-    "phase4-expedition-prep-loadout",
+    "phase4-boss-arena-device-hooks",
+    "phase4-boss-contracts",
+    "phase4-continue-hardening",
+    "phase4-continue-resume-boss-stub",
+    "phase4-contract-route-save",
     "phase4-dedicated-boss-actor-foundation",
-    "phase4-boss-arena-device-hooks"
+    "phase4-expedition-prep-loadout",
+    "phase4-hub-meta-progression",
+    "phase4-hub-terminal-wrist-parity",
+    "phase4-room-graph-branching"
   ],
   "in_progress": [
     "phase4-hub-biome-boss-foundation"
   ],
   "next_actions": [
-    "expand expedition prep into world-space terminal + wrist UI parity",
+    "add direct XR pointer interaction for world terminals and wrist confirmation prompts",
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
     "integrate arena mutation callouts with biome-specific audio reactive hooks"
   ],
