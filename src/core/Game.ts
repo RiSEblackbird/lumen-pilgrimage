@@ -50,8 +50,6 @@ export class Game {
   private runActive = false;
   private prevInteractPressed = false;
   private prevOffhandPressed = false;
-  private readonly vrPointerOrigin = new Vector3();
-  private readonly vrPointerDirection = new Vector3();
   private readonly campaignState: CampaignState;
   private readonly expeditionState = new ExpeditionState();
   private readonly metaState: MetaProgressionState;
@@ -649,13 +647,18 @@ export class Game {
       return;
     }
 
-    this.camera.getWorldPosition(this.vrPointerOrigin);
-    this.camera.getWorldDirection(this.vrPointerDirection);
-    const selectedLabel = this.hubScene.selectHubTerminalFromRay(this.vrPointerOrigin, this.vrPointerDirection);
-    this.vrUi.setPrompt(selectedLabel ? 'Hover locked: press Interact' : 'Aim terminal then press Interact');
-    if (selectedLabel) {
-      this.vrUi.setHubTerminalLabel(selectedLabel);
+    const pointerRays = this.xrInput.getControllerPointerRays();
+    const selection = this.hubScene.selectHubTerminalFromPointerRays(pointerRays);
+    if (!selection) {
+      this.vrUi.setPrompt(pointerRays.length === 0 ? 'Controller aim required for terminal select' : 'Aim terminal then press Interact');
+      return;
     }
+
+    const pointerLabel = selection.handedness === 'left' || selection.handedness === 'right'
+      ? `${selection.handedness} hand locked: press Interact`
+      : 'Controller locked: press Interact';
+    this.vrUi.setPrompt(pointerLabel);
+    this.vrUi.setHubTerminalLabel(selection.label);
   }
 
   private syncHubWristUi(): void {

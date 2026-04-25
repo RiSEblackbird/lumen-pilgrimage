@@ -12,6 +12,7 @@ import {
   Vector3
 } from 'three';
 import { HubTerminalDirector, type HubTerminalAction } from './HubTerminalDirector';
+import type { XRPointerRay } from '../../engine/input/XRActionAdapter';
 
 export class PilgrimsBelfryScene {
   private readonly arena: Mesh;
@@ -88,6 +89,48 @@ export class PilgrimsBelfryScene {
     return this.terminalDirector.getSelectedLabel();
   }
 
+  selectHubTerminalFromPointerRays(pointerRays: readonly XRPointerRay[]): HubPointerSelection | null {
+    let best: HubPointerSelection | null = null;
+
+    for (const pointerRay of pointerRays) {
+      this.pointerRaycaster.set(pointerRay.origin, pointerRay.direction.clone().normalize());
+      const intersections = this.pointerRaycaster.intersectObjects([...this.terminalMeshes], false);
+      const closest = intersections.find((hit): hit is Intersection<Mesh> => hit.object instanceof Mesh);
+      if (!closest) {
+        continue;
+      }
+
+      const hitIndex = this.terminalMeshes.findIndex((mesh) => mesh === closest.object);
+      if (hitIndex < 0) {
+        continue;
+      }
+
+      if (!best || closest.distance < best.distance) {
+        const label = this.terminalDirector.getLabelByIndex(hitIndex);
+        if (!label) {
+          continue;
+        }
+        best = {
+          terminalIndex: hitIndex,
+          label,
+          distance: closest.distance,
+          handedness: pointerRay.handedness
+        };
+      }
+    }
+
+    if (!best) {
+      return null;
+    }
+
+    this.terminalDirector.setSelectedIndex(best.terminalIndex);
+    this.terminalRing.position.copy(this.getTerminalRingAnchor());
+    return {
+      ...best,
+      label: this.terminalDirector.getSelectedLabel()
+    };
+  }
+
   setReduceFlashing(enabled: boolean): void {
     this.reduceFlashing = enabled;
   }
@@ -115,4 +158,11 @@ export class PilgrimsBelfryScene {
     }
     return new Vector3(-1.25, 0.86, -4.15);
   }
+}
+
+export interface HubPointerSelection {
+  readonly terminalIndex: number;
+  readonly label: string;
+  readonly distance: number;
+  readonly handedness: XRHandedness;
 }

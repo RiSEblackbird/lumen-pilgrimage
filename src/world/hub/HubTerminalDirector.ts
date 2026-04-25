@@ -71,6 +71,11 @@ export class HubTerminalDirector {
     return HUB_TERMINALS[this.selectedIndex].label;
   }
 
+  getLabelByIndex(index: number): string | null {
+    const palette = HUB_TERMINALS[index];
+    return palette?.label ?? null;
+  }
+
   private refreshMaterials(): void {
     for (const [index, terminalMesh] of this.terminals.entries()) {
       const material = terminalMesh.material;
