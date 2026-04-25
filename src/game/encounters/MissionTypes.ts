@@ -75,7 +75,7 @@ export const MISSION_TYPE_DEFS: readonly MissionTypeDef[] = [
   {
     id: 'litany-conflux',
     displayName: 'Litany Conflux',
-    summary: 'Solve puzzle-combat glyph relays while elite waves mutate the arena cadence.',
+    summary: 'Solve puzzle-combat relay locks while elite waves mutate the arena cadence.',
     targetObjective: 'Stabilize relay harmonics and survive conflux counterattacks.',
     routeBias: ['standard', 'secret', 'risk', 'recovery']
   },
