@@ -15,12 +15,19 @@ export interface BossPhaseRule {
   readonly focusDrainPerSecond: number;
 }
 
+export interface BossFormRule {
+  readonly enemyId: string;
+  readonly displayName: string;
+  readonly minPhaseIndex: number;
+}
+
 export interface BossContract {
   readonly biomeId: string;
   readonly bossEnemyId: string;
   readonly bossName: string;
   readonly contractLabel: string;
   readonly phases: readonly BossPhaseRule[];
+  readonly bossForms?: readonly BossFormRule[];
 }
 
 export const BOSS_CONTRACTS: readonly BossContract[] = [
@@ -279,6 +286,18 @@ export const BOSS_CONTRACTS: readonly BossContract[] = [
     bossEnemyId: 'last-cantor-broken-sun-choir',
     bossName: getEnemyDisplayName('last-cantor-broken-sun-choir'),
     contractLabel: 'Broken Sun Requiem',
+    bossForms: [
+      {
+        enemyId: 'last-cantor-broken-sun-choir',
+        displayName: getEnemyDisplayName('last-cantor-broken-sun-choir'),
+        minPhaseIndex: 1
+      },
+      {
+        enemyId: 'broken-sun-choir-incarnate',
+        displayName: getEnemyDisplayName('broken-sun-choir-incarnate'),
+        minPhaseIndex: 3
+      }
+    ],
     phases: [
       {
         index: 1,
@@ -335,6 +354,21 @@ export function resolveBossPhase(contract: BossContract, elapsedSeconds: number,
   for (const phase of contract.phases) {
     if (elapsedSeconds >= phase.minElapsedSeconds && overburn >= phase.minOverburn) {
       resolved = phase;
+    }
+  }
+  return resolved;
+}
+
+export function resolveBossForm(contract: BossContract, phaseIndex: number): BossFormRule | null {
+  const forms = contract.bossForms;
+  if (!forms || forms.length === 0) {
+    return null;
+  }
+
+  let resolved = forms[0];
+  for (const form of forms) {
+    if (phaseIndex >= form.minPhaseIndex) {
+      resolved = form;
     }
   }
   return resolved;
