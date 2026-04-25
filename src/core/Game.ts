@@ -13,9 +13,12 @@ import { ExpeditionState } from '../game/state/ExpeditionState';
 import { MetaProgressionState } from '../game/state/MetaProgressionState';
 import { HudManager } from '../game/ui/HudManager';
 import { MenuManager, type ContinueSnapshot, type HubViewModel, type MenuCommand, type SettingsViewModel } from '../game/ui/MenuManager';
+import type { ExpeditionPrepViewModel } from '../game/ui/MenuManager';
 import { VrWristUi } from '../game/ui/VrWristUi';
 import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
+import type { ExpeditionPlan } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
+import { MISSION_TYPE_DEFS } from '../game/encounters/MissionTypes';
 
 export class Game {
   private readonly renderer: WebGLRenderer;
@@ -41,6 +44,7 @@ export class Game {
   private saveAccumulator = 0;
   private continueSnapshot: ContinueSnapshot | null = null;
   private hubViewModel: HubViewModel;
+  private expeditionPrep: ExpeditionPrepViewModel;
   private runActive = false;
   private readonly campaignState: CampaignState;
   private readonly expeditionState = new ExpeditionState();
@@ -79,9 +83,11 @@ export class Game {
 
     this.combatSandbox = new CombatSandboxDirector(this.continueSnapshot);
     this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
+    this.expeditionPrep = this.toExpeditionPrepViewModel(this.combatSandbox.getExpeditionPlan(), this.hubViewModel);
     this.menu.setContinueSnapshot(this.continueSnapshot);
     this.menu.setSettings(this.settingsViewModel);
     this.menu.setHub(this.hubViewModel);
+    this.menu.setExpeditionPrep(this.expeditionPrep);
     this.applyRuntimeSettings();
 
     container.appendChild(this.renderer.domElement);
@@ -217,6 +223,12 @@ export class Game {
       return;
     }
 
+    if (command === 'open-expedition-prep' && this.states.current === 'Hub' && this.states.canTransition('ExpeditionPrep')) {
+      this.states.transition('ExpeditionPrep');
+      this.persistCurrentState();
+      return;
+    }
+
     if (command === 'unlock-astral-pike') {
       this.tryUnlockAstralPike();
       return;
@@ -230,6 +242,31 @@ export class Game {
     if (command === 'back-hub' && this.states.canTransition('Hub')) {
       this.states.transition('Hub');
       this.persistCurrentState();
+      return;
+    }
+
+    if (command === 'prep-cycle-biome') {
+      this.updateExpeditionPrepSelection('biome');
+      return;
+    }
+
+    if (command === 'prep-cycle-mission') {
+      this.updateExpeditionPrepSelection('mission');
+      return;
+    }
+
+    if (command === 'prep-cycle-weapon') {
+      this.updateExpeditionPrepSelection('weapon');
+      return;
+    }
+
+    if (command === 'prep-cycle-offhand') {
+      this.updateExpeditionPrepSelection('offhand');
+      return;
+    }
+
+    if (command === 'prep-cycle-sigil') {
+      this.updateExpeditionPrepSelection('sigil');
       return;
     }
 
@@ -330,8 +367,15 @@ export class Game {
   }
 
   private startExpeditionFromHub(): void {
-    this.combatSandbox.resetForRun(this.continueSnapshot);
-    this.expeditionState.beginFreshRun('Ember Ossuary');
+    this.combatSandbox.configureExpeditionPlan({
+      biomeId: this.expeditionPrep.selectedBiomeId,
+      missionId: this.expeditionPrep.selectedMissionId,
+      weaponId: this.expeditionPrep.selectedWeaponId,
+      offhandId: this.expeditionPrep.selectedOffhandId,
+      sigilId: this.expeditionPrep.selectedSigilId
+    });
+    this.combatSandbox.resetForRun(null);
+    this.expeditionState.beginFreshRun(this.expeditionPrep.selectedBiomeId);
     this.runActive = true;
     if (this.states.current === 'Hub' && this.states.canTransition('ExpeditionPrep')) {
       this.states.transition('ExpeditionPrep');
@@ -359,6 +403,8 @@ export class Game {
     this.menu.setHub(this.hubViewModel);
     this.combatSandbox.resetForRun(null);
     this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
+    this.expeditionPrep = this.toExpeditionPrepViewModel(this.combatSandbox.getExpeditionPlan(), this.hubViewModel);
+    this.menu.setExpeditionPrep(this.expeditionPrep);
     this.runActive = false;
     if (this.states.canTransition('Hub')) {
       this.states.transition('Hub');
@@ -403,6 +449,8 @@ export class Game {
     this.metaState.replace(slot.metaProgress);
     this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
     this.menu.setHub(this.hubViewModel);
+    this.expeditionPrep = this.toExpeditionPrepViewModel(this.combatSandbox.getExpeditionPlan(), this.hubViewModel);
+    this.menu.setExpeditionPrep(this.expeditionPrep);
   }
 
   private toHubViewModel(unlockedBiomes: readonly string[], meta: MetaProgress): HubViewModel {
@@ -416,6 +464,62 @@ export class Game {
       unlockedOffhands: meta.unlockedOffhands,
       unlockedSigils: meta.unlockedSigils
     };
+  }
+
+  private toExpeditionPrepViewModel(plan: ExpeditionPlan, hub: HubViewModel): ExpeditionPrepViewModel {
+    const safeBiome = hub.unlockedBiomes.includes(plan.biomeId) ? plan.biomeId : hub.unlockedBiomes[0] ?? 'ember-ossuary';
+    return {
+      selectedBiomeId: safeBiome,
+      selectedMissionId: MISSION_TYPE_DEFS.some((mission) => mission.id === plan.missionId) ? plan.missionId : MISSION_TYPE_DEFS[0].id,
+      selectedWeaponId: hub.unlockedWeapons.includes(plan.weaponId) ? plan.weaponId : (hub.unlockedWeapons[0] ?? 'prism-blade'),
+      selectedOffhandId: hub.unlockedOffhands.includes(plan.offhandId) ? plan.offhandId : (hub.unlockedOffhands[0] ?? 'ward-aegis'),
+      selectedSigilId: hub.unlockedSigils.includes(plan.sigilId) ? plan.sigilId : (hub.unlockedSigils[0] ?? 'blink-dash'),
+      unlockedBiomes: hub.unlockedBiomes,
+      unlockedWeapons: hub.unlockedWeapons,
+      unlockedOffhands: hub.unlockedOffhands,
+      unlockedSigils: hub.unlockedSigils
+    };
+  }
+
+  private updateExpeditionPrepSelection(kind: 'biome' | 'mission' | 'weapon' | 'offhand' | 'sigil'): void {
+    const current = this.expeditionPrep;
+    const next = { ...current };
+
+    if (kind === 'biome') {
+      next.selectedBiomeId = this.rotateString(next.unlockedBiomes, next.selectedBiomeId);
+    } else if (kind === 'mission') {
+      next.selectedMissionId = this.rotateString(
+        MISSION_TYPE_DEFS.map((mission) => mission.id),
+        next.selectedMissionId
+      );
+    } else if (kind === 'weapon') {
+      next.selectedWeaponId = this.rotateString(next.unlockedWeapons, next.selectedWeaponId);
+    } else if (kind === 'offhand') {
+      next.selectedOffhandId = this.rotateString(next.unlockedOffhands, next.selectedOffhandId);
+    } else {
+      next.selectedSigilId = this.rotateString(next.unlockedSigils, next.selectedSigilId);
+    }
+
+    this.expeditionPrep = next;
+    this.menu.setExpeditionPrep(this.expeditionPrep);
+    this.combatSandbox.configureExpeditionPlan({
+      biomeId: next.selectedBiomeId,
+      missionId: next.selectedMissionId,
+      weaponId: next.selectedWeaponId,
+      offhandId: next.selectedOffhandId,
+      sigilId: next.selectedSigilId
+    });
+  }
+
+  private rotateString(options: readonly string[], current: string): string {
+    if (options.length === 0) {
+      return current;
+    }
+    const index = options.indexOf(current);
+    if (index < 0) {
+      return options[0];
+    }
+    return options[(index + 1) % options.length];
   }
 
   private enterRunStates(): void {

@@ -23,6 +23,14 @@ export interface LoadoutAvailability {
   readonly unlockedSigils: readonly string[];
 }
 
+export interface ExpeditionPlan {
+  readonly biomeId: string;
+  readonly missionId: string;
+  readonly weaponId: string;
+  readonly offhandId: string;
+  readonly sigilId: string;
+}
+
 export interface CombatPersistenceSnapshot {
   readonly biomeId: string;
   readonly missionId: string;
@@ -116,6 +124,13 @@ export class CombatSandboxDirector {
   private bossPhaseElapsed = 0;
   private bossLabel = 'No Warden contact';
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
+  private expeditionPlan: ExpeditionPlan = {
+    biomeId: 'ember-ossuary',
+    missionId: MISSION_TYPE_DEFS[0].id,
+    weaponId: WEAPON_DEFS[0].id,
+    offhandId: OFFHAND_DEFS[0].id,
+    sigilId: SIGIL_DEFS[0].id
+  };
 
   constructor(snapshot: ContinueSnapshot | null = null) {
     this.previousActions = {
@@ -143,6 +158,27 @@ export class CombatSandboxDirector {
     this.offhandIndex = this.coerceIndex(this.offhandIndex, this.availableOffhandIndices);
     this.sigilIndex = this.coerceIndex(this.sigilIndex, this.availableSigilIndices);
     this.refreshLoadoutPoolLabel();
+    this.syncPlanFromRuntimeSelection();
+  }
+
+  configureExpeditionPlan(plan: ExpeditionPlan): void {
+    this.weaponIndex = this.resolveSelectedIndex(WEAPON_DEFS, this.availableWeaponIndices, plan.weaponId);
+    this.offhandIndex = this.resolveSelectedIndex(OFFHAND_DEFS, this.availableOffhandIndices, plan.offhandId);
+    this.sigilIndex = this.resolveSelectedIndex(SIGIL_DEFS, this.availableSigilIndices, plan.sigilId);
+    const missionIndex = this.resolveMissionIndex(plan.missionId, '');
+    this.missionIndex = missionIndex >= 0 ? missionIndex : 0;
+    this.encounter.setMissionRouteBias(MISSION_TYPE_DEFS[this.missionIndex].routeBias);
+    this.expeditionPlan = {
+      biomeId: plan.biomeId,
+      missionId: MISSION_TYPE_DEFS[this.missionIndex].id,
+      weaponId: WEAPON_DEFS[this.weaponIndex].id,
+      offhandId: OFFHAND_DEFS[this.offhandIndex].id,
+      sigilId: SIGIL_DEFS[this.sigilIndex].id
+    };
+  }
+
+  getExpeditionPlan(): ExpeditionPlan {
+    return this.expeditionPlan;
   }
 
   resetForRun(snapshot: ContinueSnapshot | null): void {
@@ -152,11 +188,11 @@ export class CombatSandboxDirector {
     this.guard = MAX_GUARD;
     this.focus = MAX_FOCUS;
     this.overburn = 0;
-    this.weaponIndex = 0;
-    this.offhandIndex = 0;
-    this.sigilIndex = 0;
-    this.missionIndex = 0;
-    this.objective = MISSION_TYPE_DEFS[0].targetObjective;
+    this.weaponIndex = this.resolveSelectedIndex(WEAPON_DEFS, this.availableWeaponIndices, this.expeditionPlan.weaponId);
+    this.offhandIndex = this.resolveSelectedIndex(OFFHAND_DEFS, this.availableOffhandIndices, this.expeditionPlan.offhandId);
+    this.sigilIndex = this.resolveSelectedIndex(SIGIL_DEFS, this.availableSigilIndices, this.expeditionPlan.sigilId);
+    this.missionIndex = this.resolveMissionIndex(this.expeditionPlan.missionId, '');
+    this.objective = MISSION_TYPE_DEFS[this.missionIndex].targetObjective;
     this.pressureLabel = 'No active pressure budget';
     this.rewardLabel = 'No reward pending';
     this.pendingReward = null;
@@ -224,8 +260,9 @@ export class CombatSandboxDirector {
 
   private initializeFromSnapshot(snapshot: ContinueSnapshot | null): void {
     if (!snapshot) {
-      this.encounter.startExpedition('ember-ossuary', MISSION_TYPE_DEFS[this.missionIndex].routeBias);
+      this.encounter.startExpedition(this.expeditionPlan.biomeId, MISSION_TYPE_DEFS[this.missionIndex].routeBias);
       this.latestEncounter = this.encounter.snapshot();
+      this.syncPlanFromRuntimeSelection();
       return;
     }
 
@@ -244,6 +281,7 @@ export class CombatSandboxDirector {
       routeStyle: this.resolveRouteStyle(snapshot.routeStyle)
     });
     this.latestEncounter = this.encounter.snapshot();
+    this.syncPlanFromRuntimeSelection();
     this.objective = `${snapshot.missionName} を継続。保存地点 ${snapshot.roomLabel} から再開。`;
   }
 
@@ -383,7 +421,19 @@ export class CombatSandboxDirector {
     this.sigilIndex = this.rotateIndex(this.sigilIndex, this.availableSigilIndices);
     this.missionIndex = (this.missionIndex + 1) % MISSION_TYPE_DEFS.length;
     this.encounter.setMissionRouteBias(MISSION_TYPE_DEFS[this.missionIndex].routeBias);
+    this.syncPlanFromRuntimeSelection();
     this.objective = `${MISSION_TYPE_DEFS[this.missionIndex].targetObjective} / Loadout: ${WEAPON_DEFS[this.weaponIndex].displayName} + ${OFFHAND_DEFS[this.offhandIndex].displayName} + ${SIGIL_DEFS[this.sigilIndex].displayName}.`;
+  }
+
+  private syncPlanFromRuntimeSelection(): void {
+    const biomeId = this.latestEncounter?.biomeId ?? this.expeditionPlan.biomeId;
+    this.expeditionPlan = {
+      biomeId,
+      missionId: MISSION_TYPE_DEFS[this.missionIndex].id,
+      weaponId: WEAPON_DEFS[this.weaponIndex].id,
+      offhandId: OFFHAND_DEFS[this.offhandIndex].id,
+      sigilId: SIGIL_DEFS[this.sigilIndex].id
+    };
   }
 
   private resolveEnemyPressure(deltaSeconds: number, actions: ActionState): void {
@@ -674,6 +724,18 @@ export class CombatSandboxDirector {
       return allowedIndices[0];
     }
     return allowedIndices[(currentPosition + 1) % allowedIndices.length];
+  }
+
+  private resolveSelectedIndex<T extends { readonly id: string }>(
+    defs: readonly T[],
+    allowedIndices: readonly number[],
+    selectedId: string
+  ): number {
+    const selectedIndex = defs.findIndex((def) => def.id === selectedId);
+    if (selectedIndex >= 0 && allowedIndices.includes(selectedIndex)) {
+      return selectedIndex;
+    }
+    return allowedIndices[0];
   }
 
   private refreshLoadoutPoolLabel(): void {

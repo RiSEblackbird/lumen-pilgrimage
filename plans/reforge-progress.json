@@ -1,6 +1,6 @@
 {
   "task": "lumen-pilgrimage-reforge",
-  "updated_at": "2026-04-24",
+  "updated_at": "2026-04-25",
   "current_phase": "Phase 4 (in progress)",
   "completed": [
     "phase1-foundation",
@@ -12,15 +12,16 @@
     "phase4-continue-hardening",
     "phase4-hub-meta-progression",
     "phase4-boss-contracts",
-    "phase4-biome-content-expansion"
+    "phase4-biome-content-expansion",
+    "phase4-expedition-prep-loadout"
   ],
   "in_progress": [
     "phase4-hub-biome-boss-foundation"
   ],
   "next_actions": [
-    "wire loadout availability to dedicated expedition prep screen (not only hub/hud text)",
     "add boss arena mutation hooks that alter room hazards per contract phase",
-    "implement dedicated boss actors beyond wave-contract placeholder behavior"
+    "implement dedicated boss actors beyond wave-contract placeholder behavior",
+    "expand expedition prep into world-space terminal + wrist UI parity"
   ],
   "smoke_commands": [
     "npm run typecheck",
