@@ -19,9 +19,9 @@
     "phase4-hub-biome-boss-foundation"
   ],
   "next_actions": [
-    "add boss arena mutation hooks that alter room hazards per contract phase",
     "implement dedicated boss actors beyond wave-contract placeholder behavior",
-    "expand expedition prep into world-space terminal + wrist UI parity"
+    "expand expedition prep into world-space terminal + wrist UI parity",
+    "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions"
   ],
   "smoke_commands": [
     "npm run typecheck",

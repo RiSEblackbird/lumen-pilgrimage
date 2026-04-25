@@ -80,6 +80,7 @@ export interface CombatSandboxSnapshot {
   readonly encounterLabel: string;
   readonly contractLabel: string;
   readonly bossLabel: string;
+  readonly arenaMutationLabel: string;
   readonly loadoutPoolLabel: string;
 }
 
@@ -123,6 +124,8 @@ export class CombatSandboxDirector {
   private bossPhaseRule: BossPhaseRule | null = null;
   private bossPhaseElapsed = 0;
   private bossLabel = 'No Warden contact';
+  private arenaMutationLabel = 'Arena stable';
+  private hazardTickAccumulator = 0;
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
   private expeditionPlan: ExpeditionPlan = {
     biomeId: 'ember-ossuary',
@@ -206,6 +209,8 @@ export class CombatSandboxDirector {
     this.bossPhaseRule = null;
     this.bossPhaseElapsed = 0;
     this.bossLabel = 'No Warden contact';
+    this.arenaMutationLabel = 'Arena stable';
+    this.hazardTickAccumulator = 0;
     this.rewards.setEquippedRelics([]);
     this.previousActions = {
       moveForward: false,
@@ -232,6 +237,7 @@ export class CombatSandboxDirector {
     this.resolveRewardInput(actions);
     this.resolvePlayerActions(actions);
     this.updateBossState(deltaSeconds);
+    this.applyArenaMutationHazards(deltaSeconds);
     this.resolveEnemyPressure(deltaSeconds, actions);
     this.previousActions = actions;
 
@@ -254,6 +260,7 @@ export class CombatSandboxDirector {
       encounterLabel: this.encounterLabel,
       contractLabel: this.getContractLabel(),
       bossLabel: this.bossLabel,
+      arenaMutationLabel: this.arenaMutationLabel,
       loadoutPoolLabel: this.loadoutPoolLabel
     };
   }
@@ -584,7 +591,9 @@ export class CombatSandboxDirector {
       this.bossPhaseRule = null;
       this.bossPhaseElapsed = 0;
       this.bossLabel = 'No Warden contact';
+      this.arenaMutationLabel = 'Arena stable';
       this.bossPhase = 0;
+      this.hazardTickAccumulator = 0;
       return;
     }
 
@@ -594,10 +603,12 @@ export class CombatSandboxDirector {
     this.bossPhase = this.bossPhaseRule?.index ?? 1;
     if (!this.bossContract || !this.bossPhaseRule) {
       this.bossLabel = 'Unknown Warden signature';
+      this.arenaMutationLabel = 'Arena mutation unknown';
       this.objective = 'Warden trace detected. Continue pressure to extract phase data.';
       return;
     }
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${this.bossPhase}/${this.bossContract.phases.length} (${this.bossPhaseRule.title})`;
+    this.arenaMutationLabel = this.bossPhaseRule.arenaMutationSummary;
     this.objective = `${this.bossContract.bossName} 接触。${this.bossPhaseRule.mechanicSummary}`;
   }
 
@@ -612,10 +623,47 @@ export class CombatSandboxDirector {
     this.bossPhaseRule = resolvedPhase;
     this.bossPhase = resolvedPhase.index;
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${resolvedPhase.index}/${this.bossContract.phases.length} (${resolvedPhase.title})`;
+    this.arenaMutationLabel = resolvedPhase.arenaMutationSummary;
     if (phaseChanged) {
       this.objective = `${this.bossContract.bossName} phase shift: ${resolvedPhase.mechanicSummary}`;
+      this.hazardTickAccumulator = 0;
       this.spawnWave();
     }
+  }
+
+  private applyArenaMutationHazards(deltaSeconds: number): void {
+    if (!this.bossPhaseRule) {
+      return;
+    }
+
+    const hazardDamagePerSecond = this.bossPhaseRule.ambientHazardDamagePerSecond;
+    const focusDrainPerSecond = this.bossPhaseRule.focusDrainPerSecond;
+    if (hazardDamagePerSecond > 0) {
+      const hazardDamage = hazardDamagePerSecond * deltaSeconds;
+      this.health = Math.max(0, this.health - hazardDamage);
+      this.roomDamageTaken += hazardDamage;
+    }
+    if (focusDrainPerSecond > 0) {
+      this.focus = Math.max(0, this.focus - focusDrainPerSecond * deltaSeconds);
+    }
+
+    if (hazardDamagePerSecond === 0 && focusDrainPerSecond === 0) {
+      return;
+    }
+
+    this.hazardTickAccumulator += deltaSeconds;
+    if (this.hazardTickAccumulator < 1) {
+      return;
+    }
+    this.hazardTickAccumulator = 0;
+
+    const pressureSummary = [
+      hazardDamagePerSecond > 0 ? `hazard -${hazardDamagePerSecond.toFixed(1)} HP/s` : null,
+      focusDrainPerSecond > 0 ? `focus -${focusDrainPerSecond.toFixed(1)}/s` : null
+    ]
+      .filter((value): value is string => value !== null)
+      .join(', ');
+    this.objective = `${this.bossPhaseRule.title}: ${pressureSummary}. ${this.bossPhaseRule.mechanicSummary}`;
   }
 
   private resolveBossContract(biomeId: string): BossContract | null {
