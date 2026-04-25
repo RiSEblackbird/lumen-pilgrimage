@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 5 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。`ArenaMutationDirector` は boss phase の `arenaMutationSummary` を biome 別 device 強度ラベルと定期 pulse callout に変換して HUD/objective に反映します。加えて `BossArenaAudioDirector` を導入し、boss phase / overburn / mutation pulse を biome 固有 motif（例: ember choir, moon bell, blackglass ticks）へマッピングして、objective callout と HUD に audio-reactive ミックス状態を表示するようにしました。今回 `MusicDirector` も追加し、探索/脅威/戦闘/クラッチ/ボス stem ミックスを biome・敵圧・overburn・boss phase に応じて算出し、HUD から現在の music レイヤー状態を追跡できるようにしました。加えて `AudioDirector` を導入し、run/hub 状態に応じた stem target をランタイムで平滑化更新する経路を追加しました（実音源ルーティング実装前の bus 同期段階）。MainMenu には Continue / New Game / Mode Select / Settings / Credits と 3 つの Save Slot 切替を実装し、Mode Select から Campaign / Contracts / Boss Rush / Endless Collapse を選択して run state を切り替えられます。Hub のXR端末選択は HMD 前方固定ではなく left/right controller ray の最短ヒット解決に更新し、VR の意図しない terminal 誤ロックを抑えています。さらに、選択中 terminal に対して left/right hand 別の world-space beacon を表示し、wrist prompt と合わせてどちらの手が lock しているかを即時判別できるようにしました。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 5 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）と biome ごと 10 room 構成、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。`ArenaMutationDirector` は boss phase の `arenaMutationSummary` を biome 別 device 強度ラベルと定期 pulse callout に変換して HUD/objective に反映します。加えて `BossArenaAudioDirector` を導入し、boss phase / overburn / mutation pulse を biome 固有 motif（例: ember choir, moon bell, blackglass ticks）へマッピングして、objective callout と HUD に audio-reactive ミックス状態を表示するようにしました。今回 `MusicDirector` も追加し、探索/脅威/戦闘/クラッチ/ボス stem ミックスを biome・敵圧・overburn・boss phase に応じて算出し、HUD から現在の music レイヤー状態を追跡できるようにしました。加えて `AudioDirector` を導入し、run/hub 状態に応じた stem target をランタイムで平滑化更新する経路を追加しました（実音源ルーティング実装前の bus 同期段階）。MainMenu には Continue / New Game / Mode Select / Settings / Credits と 3 つの Save Slot 切替を実装し、Mode Select から Campaign / Contracts / Boss Rush / Endless Collapse を選択して run state を切り替えられます。Hub のXR端末選択は HMD 前方固定ではなく left/right controller ray の最短ヒット解決に更新し、VR の意図しない terminal 誤ロックを抑えています。さらに、選択中 terminal に対して left/right hand 別の world-space beacon を表示し、wrist prompt と合わせてどちらの手が lock しているかを即時判別できるようにしました。
 
 ## セットアップ
 
@@ -79,6 +79,7 @@ npm run preview
   - mission 8系統ローテーション表示（Purge Nest 〜 Echo Rescue） + contract route bias 適用
   - EncounterDirector による biome/sector/room graph 進行表示（Ember Ossuary / Moon Reservoir）
   - room tag 連動の wave spawn table（arena / traversal / elite / reward / secret / boss-approach）
+  - biome ごと 10 room の modular encounter graph（10〜14 room quota 対応）
   - 取得 relic の stat modifier を combat resource/damage へ反映（dash cost / guard mitigation / parry bonus / room-clear focus 等）
   - continue snapshot に route style + relic modifier を保存し、Menu continue 表示へ反映
   - continue snapshot に roomId を保存し、起動時に mission/room/vitals/relic を sandbox へ再適用
@@ -98,7 +99,10 @@ npm run preview
 
 `npm run validate:content` は次を静的に検証します。
 
-- コンテンツ最低数（biome / mission / weapon / offhand / sigil / relic / boss contract）
+- コンテンツ最低数（biome / mission / weapon / offhand / sigil / relic / boss contract / enemy）
+- データ定義の重複 ID 検出（weapon / offhand / sigil / relic / mission / enemy）
+- EncounterSpawnTables の archetype 参照が EnemyCatalog と整合すること
+- biome room graph の 10〜14 room quota・dead end・soft lock 検出
 - `src/` 配下に `dev` / `placeholder` 文言が残っていないこと（`src/engine/debug/PerfHud.ts` は許可）
 
 リリース前は `npm run check`（typecheck + build + content validation）を実行してください。
