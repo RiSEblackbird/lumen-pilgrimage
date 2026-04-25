@@ -19,7 +19,8 @@
     "phase4-room-graph-branching",
     "phase5-mode-select",
     "phase5-xr-controller-pointer",
-    "phase5-save-slots"
+    "phase5-save-slots",
+    "phase5-hub-vr-hand-affordance"
   ],
   "in_progress": [
     "phase5-hub-biome-boss-foundation"
@@ -27,7 +28,7 @@
   "next_actions": [
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
     "integrate arena mutation callouts with biome-specific audio reactive hooks",
-    "expand XR hub terminal affordances with per-terminal diegetic hand-specific prompt geometry"
+    "expand hub terminals with per-terminal contextual world widgets beyond pointer lock beacons"
   ],
   "smoke_commands": [
     "npm run typecheck",

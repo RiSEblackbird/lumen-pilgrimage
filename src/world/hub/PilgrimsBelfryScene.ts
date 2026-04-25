@@ -18,6 +18,8 @@ export class PilgrimsBelfryScene {
   private readonly arena: Mesh;
   private readonly terminalDirector: HubTerminalDirector;
   private readonly terminalRing: Mesh;
+  private readonly leftHandBeacon: Mesh;
+  private readonly rightHandBeacon: Mesh;
   private readonly terminalMeshes: readonly Mesh[];
   private readonly pointerRaycaster = new Raycaster();
   private reduceFlashing = false;
@@ -46,7 +48,10 @@ export class PilgrimsBelfryScene {
     this.terminalRing.rotation.x = Math.PI / 2;
     this.terminalRing.position.copy(this.getTerminalRingAnchor());
 
-    this.scene.add(ambience, key, this.arena, this.terminalRing, ...terminalMeshes);
+    this.leftHandBeacon = this.createPointerBeacon(0x4cb8ff);
+    this.rightHandBeacon = this.createPointerBeacon(0xff9f4c);
+
+    this.scene.add(ambience, key, this.arena, this.terminalRing, this.leftHandBeacon, this.rightHandBeacon, ...terminalMeshes);
   }
 
   tick(elapsedSeconds: number): void {
@@ -55,11 +60,19 @@ export class PilgrimsBelfryScene {
 
     const pulseScale = this.reduceFlashing ? 0.06 : 0.14;
     this.terminalRing.scale.setScalar(1 + Math.sin(elapsedSeconds * 3.2) * pulseScale);
+
+    if (this.leftHandBeacon.visible) {
+      this.leftHandBeacon.scale.setScalar(1 + Math.sin(elapsedSeconds * 4.1) * 0.08);
+    }
+    if (this.rightHandBeacon.visible) {
+      this.rightHandBeacon.scale.setScalar(1 + Math.sin(elapsedSeconds * 4.1 + Math.PI / 2) * 0.08);
+    }
   }
 
   cycleHubTerminal(): string {
     this.terminalDirector.cycleSelection();
     this.terminalRing.position.copy(this.getTerminalRingAnchor());
+    this.clearPointerAffordance();
     return this.terminalDirector.getSelectedLabel();
   }
 
@@ -76,16 +89,19 @@ export class PilgrimsBelfryScene {
     const intersections = this.pointerRaycaster.intersectObjects([...this.terminalMeshes], false);
     const closest = intersections.find((hit): hit is Intersection<Mesh> => hit.object instanceof Mesh);
     if (!closest) {
+      this.clearPointerAffordance();
       return null;
     }
 
     const hitIndex = this.terminalMeshes.findIndex((mesh) => mesh === closest.object);
     if (hitIndex < 0) {
+      this.clearPointerAffordance();
       return null;
     }
 
     this.terminalDirector.setSelectedIndex(hitIndex);
     this.terminalRing.position.copy(this.getTerminalRingAnchor());
+    this.clearPointerAffordance();
     return this.terminalDirector.getSelectedLabel();
   }
 
@@ -120,15 +136,22 @@ export class PilgrimsBelfryScene {
     }
 
     if (!best) {
+      this.clearPointerAffordance();
       return null;
     }
 
     this.terminalDirector.setSelectedIndex(best.terminalIndex);
     this.terminalRing.position.copy(this.getTerminalRingAnchor());
+    this.updatePointerAffordance(best.handedness);
     return {
       ...best,
       label: this.terminalDirector.getSelectedLabel()
     };
+  }
+
+  clearPointerAffordance(): void {
+    this.leftHandBeacon.visible = false;
+    this.rightHandBeacon.visible = false;
   }
 
   setReduceFlashing(enabled: boolean): void {
@@ -148,15 +171,36 @@ export class PilgrimsBelfryScene {
     return [createTerminal(-1.25, 0x35506e), createTerminal(0, 0x5b3f24), createTerminal(1.25, 0x4f2454)];
   }
 
+  private createPointerBeacon(color: number): Mesh {
+    const beacon = new Mesh(
+      new TorusGeometry(0.13, 0.02, 8, 20),
+      new MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: 0.7,
+        roughness: 0.35,
+        metalness: 0.12
+      })
+    );
+    beacon.rotation.y = Math.PI / 2;
+    beacon.visible = false;
+    return beacon;
+  }
+
+  private updatePointerAffordance(handedness: XRHandedness): void {
+    const selectedTerminal = this.terminalMeshes[this.terminalDirector.getSelectedIndex()];
+    const basePosition = selectedTerminal.position;
+
+    this.leftHandBeacon.visible = handedness === 'left';
+    this.rightHandBeacon.visible = handedness === 'right';
+
+    this.leftHandBeacon.position.set(basePosition.x - 0.34, 1.04, basePosition.z);
+    this.rightHandBeacon.position.set(basePosition.x + 0.34, 1.04, basePosition.z);
+  }
+
   private getTerminalRingAnchor(): Vector3 {
-    const label = this.terminalDirector.getSelectedLabel();
-    if (label === 'Meta Upgrade Terminal') {
-      return new Vector3(0, 0.86, -4.15);
-    }
-    if (label === 'Return Terminal') {
-      return new Vector3(1.25, 0.86, -4.15);
-    }
-    return new Vector3(-1.25, 0.86, -4.15);
+    const selectedTerminal = this.terminalMeshes[this.terminalDirector.getSelectedIndex()];
+    return new Vector3(selectedTerminal.position.x, 0.86, selectedTerminal.position.z);
   }
 }
 
