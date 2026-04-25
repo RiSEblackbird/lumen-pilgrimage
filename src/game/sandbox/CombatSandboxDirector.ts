@@ -17,6 +17,7 @@ import { OFFHAND_DEFS } from '../items/OffhandDefs';
 import { DEFAULT_RELIC_MODIFIERS, buildRelicStatModifiers, type RelicStatModifiers } from '../items/RelicEffects';
 import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
+import type { RunMode } from '../state/RunMode';
 import type { ContinueSnapshot } from '../ui/MenuManager';
 
 export interface LoadoutAvailability {
@@ -26,6 +27,7 @@ export interface LoadoutAvailability {
 }
 
 export interface ExpeditionPlan {
+  readonly runMode: RunMode;
   readonly biomeId: string;
   readonly missionId: string;
   readonly weaponId: string;
@@ -134,6 +136,7 @@ export class CombatSandboxDirector {
   private hazardTickAccumulator = 0;
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
   private expeditionPlan: ExpeditionPlan = {
+    runMode: 'campaign',
     biomeId: 'ember-ossuary',
     missionId: MISSION_TYPE_DEFS[0].id,
     weaponId: WEAPON_DEFS[0].id,
@@ -178,6 +181,7 @@ export class CombatSandboxDirector {
     this.missionIndex = missionIndex >= 0 ? missionIndex : 0;
     this.encounter.setMissionRouteBias(MISSION_TYPE_DEFS[this.missionIndex].routeBias);
     this.expeditionPlan = {
+      runMode: plan.runMode,
       biomeId: plan.biomeId,
       missionId: MISSION_TYPE_DEFS[this.missionIndex].id,
       weaponId: WEAPON_DEFS[this.weaponIndex].id,
@@ -236,6 +240,7 @@ export class CombatSandboxDirector {
     };
 
     this.initializeFromSnapshot(snapshot);
+    this.applyModeObjectiveBias();
     this.encounterLabel = this.latestEncounter.progressLabel;
     this.spawnWave();
   }
@@ -301,6 +306,22 @@ export class CombatSandboxDirector {
     this.latestEncounter = this.encounter.snapshot();
     this.syncPlanFromRuntimeSelection();
     this.objective = `${snapshot.missionName} を継続。保存地点 ${snapshot.roomLabel} から再開。`;
+  }
+
+  private applyModeObjectiveBias(): void {
+    if (this.expeditionPlan.runMode === 'contracts') {
+      this.objective = `${this.objective} [Contract Cycle]`;
+      return;
+    }
+
+    if (this.expeditionPlan.runMode === 'boss-rush') {
+      this.objective = 'Boss Rush: chain Warden contracts and survive phase escalations.';
+      return;
+    }
+
+    if (this.expeditionPlan.runMode === 'endless-collapse') {
+      this.objective = 'Endless Collapse: sustain pressure and extend survival loops.';
+    }
   }
 
   private resolveResources(deltaSeconds: number): void {
@@ -455,7 +476,8 @@ export class CombatSandboxDirector {
     this.weaponIndex = this.rotateIndex(this.weaponIndex, this.availableWeaponIndices);
     this.offhandIndex = this.rotateIndex(this.offhandIndex, this.availableOffhandIndices);
     this.sigilIndex = this.rotateIndex(this.sigilIndex, this.availableSigilIndices);
-    this.missionIndex = (this.missionIndex + 1) % MISSION_TYPE_DEFS.length;
+    const missionStride = this.expeditionPlan.runMode === 'contracts' ? 2 : 1;
+    this.missionIndex = (this.missionIndex + missionStride) % MISSION_TYPE_DEFS.length;
     this.encounter.setMissionRouteBias(MISSION_TYPE_DEFS[this.missionIndex].routeBias);
     this.syncPlanFromRuntimeSelection();
     this.objective = `${MISSION_TYPE_DEFS[this.missionIndex].targetObjective} / Loadout: ${WEAPON_DEFS[this.weaponIndex].displayName} + ${OFFHAND_DEFS[this.offhandIndex].displayName} + ${SIGIL_DEFS[this.sigilIndex].displayName}.`;
@@ -464,6 +486,7 @@ export class CombatSandboxDirector {
   private syncPlanFromRuntimeSelection(): void {
     const biomeId = this.latestEncounter?.biomeId ?? this.expeditionPlan.biomeId;
     this.expeditionPlan = {
+      runMode: this.expeditionPlan.runMode,
       biomeId,
       missionId: MISSION_TYPE_DEFS[this.missionIndex].id,
       weaponId: WEAPON_DEFS[this.weaponIndex].id,

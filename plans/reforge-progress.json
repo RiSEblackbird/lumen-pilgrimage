@@ -1,7 +1,7 @@
 {
   "task": "lumen-pilgrimage-reforge",
   "updated_at": "2026-04-25",
-  "current_phase": "Phase 4 (in progress)",
+  "current_phase": "Phase 5 (in progress)",
   "completed": [
     "phase1-foundation",
     "phase2-combat-sandbox",
@@ -16,10 +16,11 @@
     "phase4-expedition-prep-loadout",
     "phase4-hub-meta-progression",
     "phase4-hub-terminal-wrist-parity",
-    "phase4-room-graph-branching"
+    "phase4-room-graph-branching",
+    "phase5-mode-select"
   ],
   "in_progress": [
-    "phase4-hub-biome-boss-foundation"
+    "phase5-hub-biome-boss-foundation"
   ],
   "next_actions": [
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",

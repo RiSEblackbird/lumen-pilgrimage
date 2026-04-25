@@ -5,7 +5,7 @@ const TRANSITIONS: Readonly<Record<GameState, readonly GameState[]>> = {
   MainMenu: ['Settings', 'Hub', 'Credits', 'BossRush', 'EndlessCollapse'],
   Settings: ['MainMenu'],
   Hub: ['ExpeditionPrep', 'MetaUpgrade', 'MainMenu'],
-  ExpeditionPrep: ['InExpedition', 'Hub'],
+  ExpeditionPrep: ['InExpedition', 'BossRush', 'EndlessCollapse', 'Hub'],
   InExpedition: ['MiniBoss', 'Boss', 'Extraction', 'GameOver'],
   MiniBoss: ['InExpedition', 'Extraction', 'GameOver'],
   Boss: ['Extraction', 'GameOver'],

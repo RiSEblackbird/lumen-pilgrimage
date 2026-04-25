@@ -20,6 +20,7 @@ import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
 import type { ExpeditionPlan } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
 import { MISSION_TYPE_DEFS } from '../game/encounters/MissionTypes';
+import { DEFAULT_RUN_MODE, type RunMode } from '../game/state/RunMode';
 
 export class Game {
   private readonly renderer: WebGLRenderer;
@@ -54,6 +55,7 @@ export class Game {
   private readonly campaignState: CampaignState;
   private readonly expeditionState = new ExpeditionState();
   private readonly metaState: MetaProgressionState;
+  private selectedRunMode: RunMode = DEFAULT_RUN_MODE;
 
   constructor(container: HTMLElement) {
     this.renderer = new WebGLRenderer({ antialias: true });
@@ -93,6 +95,7 @@ export class Game {
     this.menu.setSettings(this.settingsViewModel);
     this.menu.setHub(this.hubViewModel);
     this.menu.setExpeditionPrep(this.expeditionPrep);
+    this.menu.setSelectedRunMode(this.selectedRunMode);
     this.applyRuntimeSettings();
     this.syncHubWristUi();
 
@@ -226,6 +229,32 @@ export class Game {
     if (command === 'enter-hub' && this.states.canTransition('Hub')) {
       this.states.transition('Hub');
       this.persistCurrentState();
+      return;
+    }
+
+    if (command === 'open-mode-select' && this.states.current === 'MainMenu' && this.states.canTransition('BossRush')) {
+      this.states.transition('BossRush');
+      this.persistCurrentState();
+      return;
+    }
+
+    if (command === 'select-mode-campaign') {
+      this.applyRunModeSelection('campaign');
+      return;
+    }
+
+    if (command === 'select-mode-contracts') {
+      this.applyRunModeSelection('contracts');
+      return;
+    }
+
+    if (command === 'select-mode-boss-rush') {
+      this.applyRunModeSelection('boss-rush');
+      return;
+    }
+
+    if (command === 'select-mode-endless-collapse') {
+      this.applyRunModeSelection('endless-collapse');
       return;
     }
 
@@ -375,6 +404,8 @@ export class Game {
       return;
     }
 
+    this.selectedRunMode = DEFAULT_RUN_MODE;
+    this.menu.setSelectedRunMode(this.selectedRunMode);
     this.combatSandbox.resetForRun(this.continueSnapshot);
     this.expeditionState.restoreFromContinue(this.continueSnapshot);
     this.enterRunStates();
@@ -382,6 +413,7 @@ export class Game {
 
   private startExpeditionFromHub(): void {
     this.combatSandbox.configureExpeditionPlan({
+      runMode: this.selectedRunMode,
       biomeId: this.expeditionPrep.selectedBiomeId,
       missionId: this.expeditionPrep.selectedMissionId,
       weaponId: this.expeditionPrep.selectedWeaponId,
@@ -395,9 +427,8 @@ export class Game {
       this.states.transition('ExpeditionPrep');
       this.persistCurrentState();
     }
-    if (this.states.current === 'ExpeditionPrep' && this.states.canTransition('InExpedition')) {
-      this.states.transition('InExpedition');
-      this.persistCurrentState();
+    if (this.states.current === 'ExpeditionPrep') {
+      this.transitionToRunState();
     }
   }
 
@@ -420,6 +451,8 @@ export class Game {
     this.expeditionPrep = this.toExpeditionPrepViewModel(this.combatSandbox.getExpeditionPlan(), this.hubViewModel);
     this.menu.setExpeditionPrep(this.expeditionPrep);
     this.runActive = false;
+    this.selectedRunMode = DEFAULT_RUN_MODE;
+    this.menu.setSelectedRunMode(this.selectedRunMode);
     if (this.states.canTransition('Hub')) {
       this.states.transition('Hub');
       this.persistCurrentState();
@@ -518,6 +551,7 @@ export class Game {
     this.expeditionPrep = next;
     this.menu.setExpeditionPrep(this.expeditionPrep);
     this.combatSandbox.configureExpeditionPlan({
+      runMode: this.selectedRunMode,
       biomeId: next.selectedBiomeId,
       missionId: next.selectedMissionId,
       weaponId: next.selectedWeaponId,
@@ -549,7 +583,31 @@ export class Game {
       this.persistCurrentState();
     }
     if (this.states.current === 'ExpeditionPrep') {
-      this.states.transition('InExpedition');
+      this.transitionToRunState();
+    }
+  }
+
+  private applyRunModeSelection(mode: RunMode): void {
+    this.selectedRunMode = mode;
+    this.menu.setSelectedRunMode(mode);
+    if (this.states.current !== 'BossRush' && this.states.current !== 'EndlessCollapse') {
+      return;
+    }
+
+    if (this.states.canTransition('MainMenu')) {
+      this.states.transition('MainMenu');
+      this.persistCurrentState();
+    }
+  }
+
+  private transitionToRunState(): void {
+    const targetState = this.selectedRunMode === 'boss-rush'
+      ? 'BossRush'
+      : this.selectedRunMode === 'endless-collapse'
+        ? 'EndlessCollapse'
+        : 'InExpedition';
+    if (this.states.canTransition(targetState)) {
+      this.states.transition(targetState);
       this.persistCurrentState();
     }
   }
