@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,43 +11,138 @@ function readRepoFile(relativePath) {
   return readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
-function extractConstArrayBody(source, constName) {
-  const marker = `const ${constName}`;
-  const start = source.indexOf(marker);
-  if (start === -1) {
-    throw new Error(`Missing const declaration: ${constName}`);
-  }
+function parseTs(relativePath) {
+  const sourceText = readRepoFile(relativePath);
+  const sourceFile = ts.createSourceFile(relativePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  return { sourceText, sourceFile };
+}
 
-  const assignmentIndex = source.indexOf('=', start);
-  if (assignmentIndex === -1) {
-    throw new Error(`Missing assignment for ${constName}`);
-  }
+function findConstInitializer(sourceFile, constName) {
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement)) {
+      continue;
+    }
 
-  const bracketStart = source.indexOf('[', assignmentIndex);
-  if (bracketStart === -1) {
-    throw new Error(`Missing array start for ${constName}`);
-  }
-
-  let depth = 0;
-  for (let i = bracketStart; i < source.length; i += 1) {
-    const char = source[i];
-    if (char === '[') {
-      depth += 1;
-    } else if (char === ']') {
-      depth -= 1;
-      if (depth === 0) {
-        return source.slice(bracketStart, i + 1);
+    for (const declaration of statement.declarationList.declarations) {
+      if (ts.isIdentifier(declaration.name) && declaration.name.text === constName) {
+        if (!declaration.initializer) {
+          throw new Error(`Missing initializer for const ${constName}`);
+        }
+        return declaration.initializer;
       }
     }
   }
 
-  throw new Error(`Unclosed array literal for ${constName}`);
+  throw new Error(`Missing const declaration: ${constName}`);
 }
 
-function countEntriesByKey(arrayBody, key) {
-  const pattern = new RegExp(`\\b${key}\\s*:\\s*['\"][^'\"]+['\"]`, 'g');
-  const matches = arrayBody.match(pattern);
-  return matches ? matches.length : 0;
+function unwrapExpression(node) {
+  let current = node;
+  while (ts.isAsExpression(current) || ts.isTypeAssertionExpression(current) || ts.isParenthesizedExpression(current) || ts.isSatisfiesExpression?.(current)) {
+    current = current.expression;
+  }
+  return current;
+}
+
+function asArrayLiteral(node, label) {
+  const value = unwrapExpression(node);
+  if (!ts.isArrayLiteralExpression(value)) {
+    throw new Error(`${label} must be an array literal`);
+  }
+  return value;
+}
+
+function asObjectLiteral(node, label) {
+  const value = unwrapExpression(node);
+  if (!ts.isObjectLiteralExpression(value)) {
+    throw new Error(`${label} must contain object literals`);
+  }
+  return value;
+}
+
+function getObjectProperty(objectNode, propertyName, label) {
+  const property = objectNode.properties.find((entry) => {
+    if (!ts.isPropertyAssignment(entry)) {
+      return false;
+    }
+    if (ts.isIdentifier(entry.name)) {
+      return entry.name.text === propertyName;
+    }
+    if (ts.isStringLiteral(entry.name)) {
+      return entry.name.text === propertyName;
+    }
+    return false;
+  });
+
+  if (!property || !ts.isPropertyAssignment(property)) {
+    throw new Error(`Missing property ${propertyName} in ${label}`);
+  }
+
+  return property.initializer;
+}
+
+function readStringLiteral(node, label) {
+  if (!ts.isStringLiteralLike(node)) {
+    throw new Error(`${label} must be a string literal`);
+  }
+
+  return node.text;
+}
+
+function extractIdsFromConstArray(relativePath, constName, key) {
+  const { sourceFile } = parseTs(relativePath);
+  const initializer = findConstInitializer(sourceFile, constName);
+  const arrayNode = asArrayLiteral(initializer, constName);
+
+  return arrayNode.elements.map((element, index) => {
+    const objectNode = asObjectLiteral(element, `${constName}[${index}]`);
+    const idNode = getObjectProperty(objectNode, key, `${constName}[${index}]`);
+    return readStringLiteral(idNode, `${constName}[${index}].${key}`);
+  });
+}
+
+function collectArchetypeIds(relativePath) {
+  const { sourceFile } = parseTs(relativePath);
+  const ids = new Set();
+
+  const visit = (node) => {
+    if (ts.isPropertyAssignment(node)) {
+      const key = ts.isIdentifier(node.name) ? node.name.text : ts.isStringLiteral(node.name) ? node.name.text : '';
+      if (key === 'archetypeId' && ts.isStringLiteralLike(node.initializer)) {
+        ids.add(node.initializer.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return [...ids];
+}
+
+function parseBiomeRoomSeeds(relativePath) {
+  const { sourceFile } = parseTs(relativePath);
+  const initializer = findConstInitializer(sourceFile, 'BIOME_ROOM_SEEDS');
+  const biomeArray = asArrayLiteral(initializer, 'BIOME_ROOM_SEEDS');
+
+  return biomeArray.elements.map((element, biomeIndex) => {
+    const biomeObject = asObjectLiteral(element, `BIOME_ROOM_SEEDS[${biomeIndex}]`);
+    const biomeId = readStringLiteral(getObjectProperty(biomeObject, 'biomeId', `BIOME_ROOM_SEEDS[${biomeIndex}]`), 'biomeId');
+    const roomPrefix = readStringLiteral(getObjectProperty(biomeObject, 'roomPrefix', `BIOME_ROOM_SEEDS[${biomeIndex}]`), 'roomPrefix');
+    const startSlug = readStringLiteral(getObjectProperty(biomeObject, 'startSlug', `BIOME_ROOM_SEEDS[${biomeIndex}]`), 'startSlug');
+
+    const roomsNode = asArrayLiteral(getObjectProperty(biomeObject, 'rooms', `BIOME_ROOM_SEEDS[${biomeIndex}]`), 'rooms');
+    const slugs = roomsNode.elements.map((roomElement, roomIndex) => {
+      const roomObj = asObjectLiteral(roomElement, `BIOME_ROOM_SEEDS[${biomeIndex}].rooms[${roomIndex}]`);
+      return readStringLiteral(getObjectProperty(roomObj, 'slug', `BIOME_ROOM_SEEDS[${biomeIndex}].rooms[${roomIndex}]`), 'slug');
+    });
+
+    return {
+      biomeId,
+      roomPrefix,
+      startRoomId: `${roomPrefix}-${startSlug}`,
+      roomIds: slugs.map((slug) => `${roomPrefix}-${slug}`)
+    };
+  });
 }
 
 function assertMinimumCount({ name, actual, expected }) {
@@ -55,6 +151,66 @@ function assertMinimumCount({ name, actual, expected }) {
   }
 
   console.log(`✓ ${name}: ${actual} (>= ${expected})`);
+}
+
+function assertNoDuplicateIds(label, ids) {
+  const seen = new Set();
+  const duplicates = new Set();
+
+  for (const id of ids) {
+    if (seen.has(id)) {
+      duplicates.add(id);
+    }
+    seen.add(id);
+  }
+
+  if (duplicates.size > 0) {
+    throw new Error(`[data integrity] Duplicate ${label} ids: ${[...duplicates].join(', ')}`);
+  }
+
+  console.log(`✓ ${label}: no duplicates`);
+}
+
+function assertRoomGraphConnectivity(biomeSeed) {
+  const { biomeId, roomIds, startRoomId } = biomeSeed;
+  if (roomIds.length < 10 || roomIds.length > 14) {
+    throw new Error(`[content quota] ${biomeId} rooms: expected 10-14, got ${roomIds.length}`);
+  }
+
+  const graph = new Map();
+  for (let index = 0; index < roomIds.length; index += 1) {
+    const standardTarget = roomIds[(index + 1) % roomIds.length];
+    const riskTarget = roomIds[(index + 2) % roomIds.length];
+    const recoveryTarget = roomIds[(index - 1 + roomIds.length) % roomIds.length];
+    const secretTarget = roomIds[(index + 3) % roomIds.length];
+
+    graph.set(roomIds[index], [standardTarget, riskTarget, recoveryTarget, secretTarget]);
+  }
+
+  const deadEnds = [...graph.entries()].filter(([, targets]) => targets.length === 0).map(([roomId]) => roomId);
+  if (deadEnds.length > 0) {
+    throw new Error(`[room graph] ${biomeId} dead-end rooms detected: ${deadEnds.join(', ')}`);
+  }
+
+  const visited = new Set([startRoomId]);
+  const queue = [startRoomId];
+  while (queue.length > 0) {
+    const roomId = queue.shift();
+    const next = graph.get(roomId) ?? [];
+    for (const target of next) {
+      if (!visited.has(target)) {
+        visited.add(target);
+        queue.push(target);
+      }
+    }
+  }
+
+  if (visited.size !== roomIds.length) {
+    const unreachable = roomIds.filter((roomId) => !visited.has(roomId));
+    throw new Error(`[room graph] ${biomeId} contains soft-lock unreachable rooms: ${unreachable.join(', ')}`);
+  }
+
+  console.log(`✓ room graph ${biomeId}: ${roomIds.length} rooms, no dead ends, fully reachable`);
 }
 
 function walkFiles(dirPath, predicate, bucket = []) {
@@ -109,71 +265,50 @@ function scanDebugStrings() {
 }
 
 function run() {
-  const weaponDefs = readRepoFile('src/game/items/WeaponDefs.ts');
-  const offhandDefs = readRepoFile('src/game/items/OffhandDefs.ts');
-  const sigilDefs = readRepoFile('src/game/items/SigilDefs.ts');
-  const relicDefs = readRepoFile('src/game/items/RelicDefs.ts');
-  const missionDefs = readRepoFile('src/game/encounters/MissionTypes.ts');
-  const bossContracts = readRepoFile('src/game/encounters/BossContracts.ts');
-  const campaignBiomes = readRepoFile('src/game/state/CampaignBiomes.ts');
-  const enemyCatalog = readRepoFile('src/content/enemies/EnemyCatalog.ts');
+  const weaponIds = extractIdsFromConstArray('src/game/items/WeaponDefs.ts', 'WEAPON_DEFS', 'id');
+  const offhandIds = extractIdsFromConstArray('src/game/items/OffhandDefs.ts', 'OFFHAND_DEFS', 'id');
+  const sigilIds = extractIdsFromConstArray('src/game/items/SigilDefs.ts', 'SIGIL_DEFS', 'id');
+  const relicIds = extractIdsFromConstArray('src/game/items/RelicDefs.ts', 'RELIC_DEFS', 'id');
+  const missionIds = extractIdsFromConstArray('src/game/encounters/MissionTypes.ts', 'MISSION_TYPE_DEFS', 'id');
+  const bossContractBiomeIds = extractIdsFromConstArray('src/game/encounters/BossContracts.ts', 'BOSS_CONTRACTS', 'biomeId');
+  const campaignBiomeIds = extractIdsFromConstArray('src/game/state/CampaignBiomes.ts', 'CAMPAIGN_BIOME_ORDER', 'id');
+  const regularEnemyIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'REGULAR_ENEMIES', 'id');
+  const eliteEnemyIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'ELITE_ENEMIES', 'id');
+  const miniBossIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'MINI_BOSSES', 'id');
+  const bossEnemyIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'BOSS_ENEMIES', 'id');
 
-  assertMinimumCount({
-    name: 'weapons',
-    actual: countEntriesByKey(extractConstArrayBody(weaponDefs, 'WEAPON_DEFS'), 'id'),
-    expected: 4
-  });
-  assertMinimumCount({
-    name: 'offhands',
-    actual: countEntriesByKey(extractConstArrayBody(offhandDefs, 'OFFHAND_DEFS'), 'id'),
-    expected: 4
-  });
-  assertMinimumCount({
-    name: 'sigils',
-    actual: countEntriesByKey(extractConstArrayBody(sigilDefs, 'SIGIL_DEFS'), 'id'),
-    expected: 12
-  });
-  assertMinimumCount({
-    name: 'relics',
-    actual: countEntriesByKey(extractConstArrayBody(relicDefs, 'RELIC_DEFS'), 'id'),
-    expected: 24
-  });
-  assertMinimumCount({
-    name: 'missions',
-    actual: countEntriesByKey(extractConstArrayBody(missionDefs, 'MISSION_TYPE_DEFS'), 'id'),
-    expected: 8
-  });
-  assertMinimumCount({
-    name: 'boss contracts',
-    actual: countEntriesByKey(extractConstArrayBody(bossContracts, 'BOSS_CONTRACTS'), 'biomeId'),
-    expected: 6
-  });
-  assertMinimumCount({
-    name: 'campaign biomes',
-    actual: countEntriesByKey(extractConstArrayBody(campaignBiomes, 'CAMPAIGN_BIOME_ORDER'), 'id'),
-    expected: 6
-  });
+  assertMinimumCount({ name: 'weapons', actual: weaponIds.length, expected: 4 });
+  assertMinimumCount({ name: 'offhands', actual: offhandIds.length, expected: 4 });
+  assertMinimumCount({ name: 'sigils', actual: sigilIds.length, expected: 12 });
+  assertMinimumCount({ name: 'relics', actual: relicIds.length, expected: 24 });
+  assertMinimumCount({ name: 'missions', actual: missionIds.length, expected: 8 });
+  assertMinimumCount({ name: 'boss contracts', actual: bossContractBiomeIds.length, expected: 6 });
+  assertMinimumCount({ name: 'campaign biomes', actual: campaignBiomeIds.length, expected: 6 });
+  assertMinimumCount({ name: 'regular enemies', actual: regularEnemyIds.length, expected: 12 });
+  assertMinimumCount({ name: 'elite enemies', actual: eliteEnemyIds.length, expected: 6 });
+  assertMinimumCount({ name: 'mini bosses', actual: miniBossIds.length, expected: 5 });
+  assertMinimumCount({ name: 'boss enemies', actual: bossEnemyIds.length, expected: 6 });
 
-  assertMinimumCount({
-    name: 'regular enemies',
-    actual: countEntriesByKey(extractConstArrayBody(enemyCatalog, 'REGULAR_ENEMIES'), 'id'),
-    expected: 12
-  });
-  assertMinimumCount({
-    name: 'elite enemies',
-    actual: countEntriesByKey(extractConstArrayBody(enemyCatalog, 'ELITE_ENEMIES'), 'id'),
-    expected: 6
-  });
-  assertMinimumCount({
-    name: 'mini bosses',
-    actual: countEntriesByKey(extractConstArrayBody(enemyCatalog, 'MINI_BOSSES'), 'id'),
-    expected: 5
-  });
-  assertMinimumCount({
-    name: 'boss enemies',
-    actual: countEntriesByKey(extractConstArrayBody(enemyCatalog, 'BOSS_ENEMIES'), 'id'),
-    expected: 6
-  });
+  assertNoDuplicateIds('weapon', weaponIds);
+  assertNoDuplicateIds('offhand', offhandIds);
+  assertNoDuplicateIds('sigil', sigilIds);
+  assertNoDuplicateIds('relic', relicIds);
+  assertNoDuplicateIds('mission', missionIds);
+
+  const allEnemyIds = [...regularEnemyIds, ...eliteEnemyIds, ...miniBossIds, ...bossEnemyIds];
+  assertNoDuplicateIds('enemy catalog', allEnemyIds);
+
+  const encounterArchetypeIds = collectArchetypeIds('src/game/encounters/EncounterSpawnTables.ts');
+  const unknownArchetypes = encounterArchetypeIds.filter((id) => !allEnemyIds.includes(id));
+  if (unknownArchetypes.length > 0) {
+    throw new Error(`[content validation] EncounterSpawnTables has unknown archetype ids: ${unknownArchetypes.join(', ')}`);
+  }
+  console.log(`✓ encounter archetypes: all ${encounterArchetypeIds.length} ids resolve in EnemyCatalog`);
+
+  const biomeSeeds = parseBiomeRoomSeeds('src/game/encounters/EncounterRuleSet.ts');
+  for (const biomeSeed of biomeSeeds) {
+    assertRoomGraphConnectivity(biomeSeed);
+  }
 
   scanDebugStrings();
 }
