@@ -3,6 +3,7 @@ import type { RelicStatModifiers } from '../items/RelicEffects';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 import { OFFHAND_DEFS } from '../items/OffhandDefs';
 import { SIGIL_DEFS } from '../items/SigilDefs';
+import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
 
 export interface ContinueSnapshot {
   readonly biomeId: string;
@@ -33,6 +34,18 @@ export interface HubViewModel {
   readonly unlockedSigils: readonly string[];
 }
 
+export interface ExpeditionPrepViewModel {
+  readonly selectedBiomeId: string;
+  readonly selectedMissionId: string;
+  readonly selectedWeaponId: string;
+  readonly selectedOffhandId: string;
+  readonly selectedSigilId: string;
+  readonly unlockedBiomes: readonly string[];
+  readonly unlockedWeapons: readonly string[];
+  readonly unlockedOffhands: readonly string[];
+  readonly unlockedSigils: readonly string[];
+}
+
 export interface SettingsViewModel {
   readonly snapTurn: boolean;
   readonly seatedMode: boolean;
@@ -45,6 +58,7 @@ export type MenuCommand =
   | 'continue'
   | 'new-game'
   | 'enter-hub'
+  | 'open-expedition-prep'
   | 'launch-expedition'
   | 'open-meta-upgrade'
   | 'unlock-astral-pike'
@@ -58,6 +72,11 @@ export type MenuCommand =
   | 'ui-scale-up'
   | 'master-volume-down'
   | 'master-volume-up'
+  | 'prep-cycle-biome'
+  | 'prep-cycle-mission'
+  | 'prep-cycle-weapon'
+  | 'prep-cycle-offhand'
+  | 'prep-cycle-sigil'
   | 'back-main-menu'
   | 'back-hub';
 
@@ -68,6 +87,7 @@ export class MenuManager {
   private continueSnapshot: ContinueSnapshot | null = null;
   private settings: SettingsViewModel | null = null;
   private hub: HubViewModel | null = null;
+  private prep: ExpeditionPrepViewModel | null = null;
   private uiScale = 1;
 
   constructor(container: HTMLElement) {
@@ -104,6 +124,11 @@ export class MenuManager {
     this.render();
   }
 
+  setExpeditionPrep(prep: ExpeditionPrepViewModel): void {
+    this.prep = prep;
+    this.render();
+  }
+
   setUiScale(scale: number): void {
     this.uiScale = scale;
     this.root.style.transformOrigin = 'top left';
@@ -131,6 +156,11 @@ export class MenuManager {
     if (this.state === 'MetaUpgrade') {
       this.root.innerHTML = '';
       this.root.append(this.createMetaUpgradePanel());
+      return;
+    }
+    if (this.state === 'ExpeditionPrep') {
+      this.root.innerHTML = '';
+      this.root.append(this.createExpeditionPrepPanel());
       return;
     }
 
@@ -235,9 +265,51 @@ export class MenuManager {
       panel.append(this.createInfoLabel(`Resume-ready: ${snapshot.biomeId} / ${snapshot.roomLabel}`));
     }
 
-    panel.append(this.createCommandButton('Launch Expedition', 'launch-expedition'));
+    panel.append(this.createCommandButton('Expedition Prep', 'open-expedition-prep'));
     panel.append(this.createCommandButton('Open Meta Upgrades', 'open-meta-upgrade'));
     panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+    return panel;
+  }
+
+  private createExpeditionPrepPanel(): HTMLElement {
+    const panel = document.createElement('div');
+    panel.style.display = 'grid';
+    panel.style.gap = '8px';
+    panel.style.minWidth = '340px';
+
+    const title = document.createElement('div');
+    title.textContent = 'Expedition Prep';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '700';
+    panel.append(title);
+
+    const prep = this.prep;
+    if (!prep) {
+      panel.append(this.createInfoLabel('Prep data unavailable'));
+      panel.append(this.createCommandButton('Back to Hub', 'back-hub'));
+      return panel;
+    }
+
+    const selectedBiomeLabel = prep.unlockedBiomes.includes(prep.selectedBiomeId) ? prep.selectedBiomeId : prep.unlockedBiomes[0] ?? 'ember-ossuary';
+    const selectedMission = MISSION_TYPE_DEFS.find((mission) => mission.id === prep.selectedMissionId) ?? MISSION_TYPE_DEFS[0];
+    const selectedWeapon = WEAPON_DEFS.find((weapon) => weapon.id === prep.selectedWeaponId) ?? WEAPON_DEFS[0];
+    const selectedOffhand = OFFHAND_DEFS.find((offhand) => offhand.id === prep.selectedOffhandId) ?? OFFHAND_DEFS[0];
+    const selectedSigil = SIGIL_DEFS.find((sigil) => sigil.id === prep.selectedSigilId) ?? SIGIL_DEFS[0];
+
+    panel.append(this.createInfoLabel(`Biome: ${selectedBiomeLabel}`));
+    panel.append(this.createCommandButton('Cycle Biome', 'prep-cycle-biome'));
+    panel.append(this.createInfoLabel(`Mission: ${selectedMission.displayName}`));
+    panel.append(this.createCommandButton('Cycle Mission', 'prep-cycle-mission'));
+    panel.append(this.createInfoLabel(`Weapon: ${selectedWeapon.displayName}`));
+    panel.append(this.createCommandButton('Cycle Weapon', 'prep-cycle-weapon'));
+    panel.append(this.createInfoLabel(`Offhand: ${selectedOffhand.displayName}`));
+    panel.append(this.createCommandButton('Cycle Offhand', 'prep-cycle-offhand'));
+    panel.append(this.createInfoLabel(`Sigil: ${selectedSigil.displayName}`));
+    panel.append(this.createCommandButton('Cycle Sigil', 'prep-cycle-sigil'));
+    panel.append(this.createInfoLabel(`Route Bias: ${selectedMission.routeBias.join(' → ')}`));
+    panel.append(this.createInfoLabel(`Objective: ${selectedMission.summary}`));
+    panel.append(this.createCommandButton('Launch Expedition', 'launch-expedition'));
+    panel.append(this.createCommandButton('Back to Hub', 'back-hub'));
     return panel;
   }
 
