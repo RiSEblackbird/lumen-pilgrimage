@@ -3,8 +3,10 @@ import {
   BoxGeometry,
   Color,
   DirectionalLight,
+  Intersection,
   Mesh,
   MeshStandardMaterial,
+  Raycaster,
   Scene,
   TorusGeometry,
   Vector3
@@ -15,6 +17,8 @@ export class PilgrimsBelfryScene {
   private readonly arena: Mesh;
   private readonly terminalDirector: HubTerminalDirector;
   private readonly terminalRing: Mesh;
+  private readonly terminalMeshes: readonly Mesh[];
+  private readonly pointerRaycaster = new Raycaster();
   private reduceFlashing = false;
 
   constructor(private readonly scene: Scene) {
@@ -31,6 +35,7 @@ export class PilgrimsBelfryScene {
     this.arena.position.set(0, 1, -3);
 
     const terminalMeshes = this.createTerminalPedestals();
+    this.terminalMeshes = terminalMeshes;
     this.terminalDirector = new HubTerminalDirector(terminalMeshes);
 
     this.terminalRing = new Mesh(
@@ -62,6 +67,24 @@ export class PilgrimsBelfryScene {
   }
 
   getSelectedHubTerminalLabel(): string {
+    return this.terminalDirector.getSelectedLabel();
+  }
+
+  selectHubTerminalFromRay(origin: Vector3, direction: Vector3): string | null {
+    this.pointerRaycaster.set(origin, direction.clone().normalize());
+    const intersections = this.pointerRaycaster.intersectObjects([...this.terminalMeshes], false);
+    const closest = intersections.find((hit): hit is Intersection<Mesh> => hit.object instanceof Mesh);
+    if (!closest) {
+      return null;
+    }
+
+    const hitIndex = this.terminalMeshes.findIndex((mesh) => mesh === closest.object);
+    if (hitIndex < 0) {
+      return null;
+    }
+
+    this.terminalDirector.setSelectedIndex(hitIndex);
+    this.terminalRing.position.copy(this.getTerminalRingAnchor());
     return this.terminalDirector.getSelectedLabel();
   }
 

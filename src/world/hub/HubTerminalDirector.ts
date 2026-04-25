@@ -49,6 +49,20 @@ export class HubTerminalDirector {
     this.refreshMaterials();
   }
 
+  setSelectedIndex(index: number): void {
+    if (HUB_TERMINALS.length === 0) {
+      return;
+    }
+
+    const normalizedIndex = ((Math.floor(index) % HUB_TERMINALS.length) + HUB_TERMINALS.length) % HUB_TERMINALS.length;
+    if (normalizedIndex === this.selectedIndex) {
+      return;
+    }
+
+    this.selectedIndex = normalizedIndex;
+    this.refreshMaterials();
+  }
+
   activateSelection(): HubTerminalAction {
     return HUB_TERMINALS[this.selectedIndex].action;
   }

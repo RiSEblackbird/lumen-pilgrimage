@@ -49,6 +49,8 @@ export class Game {
   private runActive = false;
   private prevInteractPressed = false;
   private prevOffhandPressed = false;
+  private readonly vrPointerOrigin = new Vector3();
+  private readonly vrPointerDirection = new Vector3();
   private readonly campaignState: CampaignState;
   private readonly expeditionState = new ExpeditionState();
   private readonly metaState: MetaProgressionState;
@@ -117,6 +119,7 @@ export class Game {
       this.renderer.render(this.scene, this.camera);
       this.updateDebug(delta);
       const desktopActions = this.desktopInput.snapshot();
+      this.updateVrHubPointer();
       this.handleHubTerminalInput(desktopActions);
       this.handleMenuCommands();
 
@@ -560,7 +563,8 @@ export class Game {
       return;
     }
 
-    const cyclePressed = actions.offhand && !this.prevOffhandPressed;
+    const allowDesktopCycle = !this.xrInput.isPresenting();
+    const cyclePressed = allowDesktopCycle && actions.offhand && !this.prevOffhandPressed;
     if (cyclePressed) {
       const selectedLabel = this.hubScene.cycleHubTerminal();
       this.vrUi.setHubTerminalLabel(selectedLabel);
@@ -574,6 +578,26 @@ export class Game {
 
     this.prevInteractPressed = actions.interact;
     this.prevOffhandPressed = actions.offhand;
+  }
+
+  private updateVrHubPointer(): void {
+    const canUseHubPointer = this.xrInput.isPresenting() && !this.runActive && this.states.current === 'Hub';
+    if (!canUseHubPointer) {
+      if (this.xrInput.isPresenting()) {
+        this.vrUi.setPrompt('Hub terminal not available');
+      } else {
+        this.vrUi.setPrompt('Aim terminal then press Interact');
+      }
+      return;
+    }
+
+    this.camera.getWorldPosition(this.vrPointerOrigin);
+    this.camera.getWorldDirection(this.vrPointerDirection);
+    const selectedLabel = this.hubScene.selectHubTerminalFromRay(this.vrPointerOrigin, this.vrPointerDirection);
+    this.vrUi.setPrompt(selectedLabel ? 'Hover locked: press Interact' : 'Aim terminal then press Interact');
+    if (selectedLabel) {
+      this.vrUi.setHubTerminalLabel(selectedLabel);
+    }
   }
 
   private syncHubWristUi(): void {
