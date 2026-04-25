@@ -22,9 +22,9 @@
     "phase4-hub-biome-boss-foundation"
   ],
   "next_actions": [
-    "add direct XR pointer interaction for world terminals and wrist confirmation prompts",
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
-    "integrate arena mutation callouts with biome-specific audio reactive hooks"
+    "integrate arena mutation callouts with biome-specific audio reactive hooks",
+    "replace HMD-forward fallback with per-controller pointer source selection in XR hub terminals"
   ],
   "smoke_commands": [
     "npm run typecheck",

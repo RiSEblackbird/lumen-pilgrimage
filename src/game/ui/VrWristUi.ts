@@ -1,5 +1,6 @@
 export class VrWristUi {
   private status = 'Idle';
+  private prompt = 'Aim terminal then press Interact';
   private comfortLabel = 'SnapTurn / Standing';
   private volumePercent = 80;
   private hubTerminalLabel = 'Expedition Terminal';
@@ -17,12 +18,16 @@ export class VrWristUi {
     this.prepSummary = summary;
   }
 
+  setPrompt(prompt: string): void {
+    this.prompt = prompt;
+  }
+
   applySettings(comfortLabel: string, masterVolume: number): void {
     this.comfortLabel = comfortLabel;
     this.volumePercent = Math.round(masterVolume * 100);
   }
 
   getStatus(): string {
-    return `${this.status} | ${this.hubTerminalLabel} | ${this.prepSummary} | ${this.comfortLabel} | Mix ${this.volumePercent}%`;
+    return `${this.status} | ${this.prompt} | ${this.hubTerminalLabel} | ${this.prepSummary} | ${this.comfortLabel} | Mix ${this.volumePercent}%`;
   }
 }

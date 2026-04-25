@@ -4,7 +4,7 @@
 - Task ID: reforge-phase4-hub-terminal-wrist-parity
 - Branch: current
 - Owner: codex agent
-- Last Updated: 2026-04-25
+- Last Updated: 2026-04-25 (XR pointer pass)
 
 ## 1. Objective
 - Hub で world-space terminal を使った導線を追加し、VR wrist UI と Expedition Prep の情報表示を同等に揃える。
@@ -19,8 +19,9 @@
   - Hub scene に terminal pedestal の視覚要素を追加。
   - VR wrist UI に terminal/loadout/status を統合表示。
   - Hub メニューに terminal 操作ヒントを追加。
+  - XR presenting 時に world-space terminal を camera ray で直接選択できるようにする。
 - Out of scope:
-  - VR コントローラ raycast による実操作。
+  - VR コントローラ hand pose / pointer source の個別最適化。
   - 専用 3D terminal UI パネルの新規制作。
 
 ## 4. Milestones
@@ -29,10 +30,12 @@
 | M1 | Hub terminal director と scene 表示を追加 | Done | terminal pedestal + selection ring を追加 |
 | M2 | Game で terminal input と menu state 遷移を接続 | Done | Hub 中 Q/E で cycle/interact を処理 |
 | M3 | Wrist UI と prep parity、型/ビルド検証 | Done | wrist status に terminal + prep summary を統合 |
+| M4 | XR direct pointer interaction | Done | Hub の world terminal を XR ray hover + interact で確定 |
 
 ## 5. Acceptance Criteria
 - [x] Hub で terminal 選択を切り替え、選択中 terminal の action を起動できる。
 - [x] VR wrist status が terminal 選択と prep 情報を表示する。
+- [x] XR presenting 中は Hub terminal を world-space ray hover で直接選択できる。
 - [x] typecheck / build が成功する。
 
 ## 6. Verification Commands
@@ -44,7 +47,7 @@
 - [ ] `npm run dev`
 
 ## 7. Known Blockers
-- VR コントローラの direct world terminal interaction は未実装（現時点では desktop input parity ベース）。
+- VR コントローラごとの hand pose / pointer source 切替は未実装（現状は HMD forward ray ベース）。
 
 ## 8. Feature Flag / Rollback Plan (if needed)
 - Feature flag: なし。
@@ -52,6 +55,7 @@
 
 ## 9. Status Updates
 - 2026-04-25: Hub terminal director / scene visual / wrist parity / input 接続を実装し、typecheck と build を完了。
+- 2026-04-25 (XR pointer pass): XR presenting 中の Hub で camera ray hover による terminal 選択と wrist confirmation prompt を追加。
 
 ## 10. Stop State Checklist
 - [x] 各マイルストーン状態を更新した
