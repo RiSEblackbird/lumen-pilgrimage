@@ -63,6 +63,10 @@ export class HubTerminalDirector {
     this.refreshMaterials();
   }
 
+  getSelectedIndex(): number {
+    return this.selectedIndex;
+  }
+
   activateSelection(): HubTerminalAction {
     return HUB_TERMINALS[this.selectedIndex].action;
   }

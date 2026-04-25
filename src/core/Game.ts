@@ -661,6 +661,7 @@ export class Game {
   private updateVrHubPointer(): void {
     const canUseHubPointer = this.xrInput.isPresenting() && !this.runActive && this.states.current === 'Hub';
     if (!canUseHubPointer) {
+      this.hubScene.clearPointerAffordance();
       if (this.xrInput.isPresenting()) {
         this.vrUi.setPrompt('Hub terminal not available');
       } else {
@@ -672,13 +673,14 @@ export class Game {
     const pointerRays = this.xrInput.getControllerPointerRays();
     const selection = this.hubScene.selectHubTerminalFromPointerRays(pointerRays);
     if (!selection) {
+      this.hubScene.clearPointerAffordance();
       this.vrUi.setPrompt(pointerRays.length === 0 ? 'Controller aim required for terminal select' : 'Aim terminal then press Interact');
       return;
     }
 
     const pointerLabel = selection.handedness === 'left' || selection.handedness === 'right'
-      ? `${selection.handedness} hand locked: press Interact`
-      : 'Controller locked: press Interact';
+      ? `${selection.handedness === 'left' ? 'Left' : 'Right'} hand lock active: press Interact`
+      : 'Controller lock active: press Interact';
     this.vrUi.setPrompt(pointerLabel);
     this.vrUi.setHubTerminalLabel(selection.label);
   }
