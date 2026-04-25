@@ -145,6 +145,29 @@ function parseBiomeRoomSeeds(relativePath) {
   });
 }
 
+
+function parseLootTables(relativePath) {
+  const { sourceFile } = parseTs(relativePath);
+  const initializer = findConstInitializer(sourceFile, 'LOOT_TABLES');
+  const tableArray = asArrayLiteral(initializer, 'LOOT_TABLES');
+
+  return tableArray.elements.map((element, tableIndex) => {
+    const tableObject = asObjectLiteral(element, `LOOT_TABLES[${tableIndex}]`);
+    const id = readStringLiteral(getObjectProperty(tableObject, 'id', `LOOT_TABLES[${tableIndex}]`), 'id');
+    const entriesNode = asArrayLiteral(getObjectProperty(tableObject, 'entries', `LOOT_TABLES[${tableIndex}]`), 'entries');
+
+    const relicIds = entriesNode.elements.map((entryNode, entryIndex) => {
+      const entryObject = asObjectLiteral(entryNode, `LOOT_TABLES[${tableIndex}].entries[${entryIndex}]`);
+      return readStringLiteral(
+        getObjectProperty(entryObject, 'relicId', `LOOT_TABLES[${tableIndex}].entries[${entryIndex}]`),
+        'relicId'
+      );
+    });
+
+    return { id, relicIds };
+  });
+}
+
 function assertMinimumCount({ name, actual, expected }) {
   if (actual < expected) {
     throw new Error(`[content quota] ${name}: expected >= ${expected}, got ${actual}`);
@@ -269,6 +292,7 @@ function run() {
   const offhandIds = extractIdsFromConstArray('src/game/items/OffhandDefs.ts', 'OFFHAND_DEFS', 'id');
   const sigilIds = extractIdsFromConstArray('src/game/items/SigilDefs.ts', 'SIGIL_DEFS', 'id');
   const relicIds = extractIdsFromConstArray('src/game/items/RelicDefs.ts', 'RELIC_DEFS', 'id');
+  const lootTables = parseLootTables('src/game/items/LootTables.ts');
   const missionIds = extractIdsFromConstArray('src/game/encounters/MissionTypes.ts', 'MISSION_TYPE_DEFS', 'id');
   const bossContractBiomeIds = extractIdsFromConstArray('src/game/encounters/BossContracts.ts', 'BOSS_CONTRACTS', 'biomeId');
   const campaignBiomeIds = extractIdsFromConstArray('src/game/state/CampaignBiomes.ts', 'CAMPAIGN_BIOME_ORDER', 'id');
@@ -293,6 +317,15 @@ function run() {
   assertNoDuplicateIds('offhand', offhandIds);
   assertNoDuplicateIds('sigil', sigilIds);
   assertNoDuplicateIds('relic', relicIds);
+  assertNoDuplicateIds('loot table', lootTables.map((table) => table.id));
+
+  const lootRelicIds = lootTables.flatMap((table) => table.relicIds);
+  const unknownLootRelics = lootRelicIds.filter((relicId) => !relicIds.includes(relicId));
+  if (unknownLootRelics.length > 0) {
+    throw new Error(`[content validation] LootTables has unknown relic ids: ${[...new Set(unknownLootRelics)].join(', ')}`);
+  }
+  console.log(`✓ loot table relic references: all ${lootRelicIds.length} entries resolve in RelicDefs`);
+
   assertNoDuplicateIds('mission', missionIds);
 
   const allEnemyIds = [...regularEnemyIds, ...eliteEnemyIds, ...miniBossIds, ...bossEnemyIds];
