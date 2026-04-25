@@ -11,8 +11,15 @@ import {
   TorusGeometry,
   Vector3
 } from 'three';
-import { HubTerminalDirector, type HubTerminalAction } from './HubTerminalDirector';
+import { HubTerminalDirector, type HubTerminalAction, type HubTerminalId, type HubTerminalWidgetState } from './HubTerminalDirector';
 import type { XRPointerRay } from '../../engine/input/XRActionAdapter';
+
+interface TerminalWidgetMeshes {
+  readonly stem: Mesh;
+  readonly meter: Mesh;
+  readonly halo: Mesh;
+  state: HubTerminalWidgetState;
+}
 
 export class PilgrimsBelfryScene {
   private readonly arena: Mesh;
@@ -21,6 +28,7 @@ export class PilgrimsBelfryScene {
   private readonly leftHandBeacon: Mesh;
   private readonly rightHandBeacon: Mesh;
   private readonly terminalMeshes: readonly Mesh[];
+  private readonly terminalWidgets = new Map<HubTerminalId, TerminalWidgetMeshes>();
   private readonly pointerRaycaster = new Raycaster();
   private reduceFlashing = false;
 
@@ -51,6 +59,8 @@ export class PilgrimsBelfryScene {
     this.leftHandBeacon = this.createPointerBeacon(0x4cb8ff);
     this.rightHandBeacon = this.createPointerBeacon(0xff9f4c);
 
+    this.createTerminalWidgets();
+
     this.scene.add(ambience, key, this.arena, this.terminalRing, this.leftHandBeacon, this.rightHandBeacon, ...terminalMeshes);
   }
 
@@ -67,11 +77,14 @@ export class PilgrimsBelfryScene {
     if (this.rightHandBeacon.visible) {
       this.rightHandBeacon.scale.setScalar(1 + Math.sin(elapsedSeconds * 4.1 + Math.PI / 2) * 0.08);
     }
+
+    this.animateTerminalWidgets(elapsedSeconds);
   }
 
   cycleHubTerminal(): string {
     this.terminalDirector.cycleSelection();
     this.terminalRing.position.copy(this.getTerminalRingAnchor());
+    this.refreshWidgetHighlights();
     this.clearPointerAffordance();
     return this.terminalDirector.getSelectedLabel();
   }
@@ -82,6 +95,19 @@ export class PilgrimsBelfryScene {
 
   getSelectedHubTerminalLabel(): string {
     return this.terminalDirector.getSelectedLabel();
+  }
+
+  setTerminalWidgetState(terminalId: HubTerminalId, state: HubTerminalWidgetState): void {
+    const widget = this.terminalWidgets.get(terminalId);
+    if (!widget) {
+      return;
+    }
+
+    widget.state = {
+      label: state.label,
+      intensity: this.clamp01(state.intensity)
+    };
+    this.applyWidgetState(terminalId, widget);
   }
 
   selectHubTerminalFromRay(origin: Vector3, direction: Vector3): string | null {
@@ -101,6 +127,7 @@ export class PilgrimsBelfryScene {
 
     this.terminalDirector.setSelectedIndex(hitIndex);
     this.terminalRing.position.copy(this.getTerminalRingAnchor());
+    this.refreshWidgetHighlights();
     this.clearPointerAffordance();
     return this.terminalDirector.getSelectedLabel();
   }
@@ -142,6 +169,7 @@ export class PilgrimsBelfryScene {
 
     this.terminalDirector.setSelectedIndex(best.terminalIndex);
     this.terminalRing.position.copy(this.getTerminalRingAnchor());
+    this.refreshWidgetHighlights();
     this.updatePointerAffordance(best.handedness);
     return {
       ...best,
@@ -169,6 +197,121 @@ export class PilgrimsBelfryScene {
     };
 
     return [createTerminal(-1.25, 0x35506e), createTerminal(0, 0x5b3f24), createTerminal(1.25, 0x4f2454)];
+  }
+
+  private createTerminalWidgets(): void {
+    const meterGeometry = new BoxGeometry(0.12, 1, 0.12);
+    const stemGeometry = new BoxGeometry(0.18, 0.1, 0.18);
+    const haloGeometry = new TorusGeometry(0.2, 0.015, 8, 20);
+
+    for (const [index, terminal] of this.terminalMeshes.entries()) {
+      const terminalId = this.terminalDirector.getTerminalIdByIndex(index);
+      if (!terminalId) {
+        continue;
+      }
+
+      const stem = new Mesh(
+        stemGeometry,
+        new MeshStandardMaterial({
+          color: 0x1c2434,
+          emissive: 0x1c2434,
+          emissiveIntensity: 0.2,
+          roughness: 0.55,
+          metalness: 0.3
+        })
+      );
+      const meter = new Mesh(
+        meterGeometry,
+        new MeshStandardMaterial({
+          color: 0x5fa8ff,
+          emissive: 0x5fa8ff,
+          emissiveIntensity: 0.45,
+          roughness: 0.32,
+          metalness: 0.12
+        })
+      );
+      const halo = new Mesh(
+        haloGeometry,
+        new MeshStandardMaterial({
+          color: 0x87b8ff,
+          emissive: 0x87b8ff,
+          emissiveIntensity: 0.35,
+          roughness: 0.35,
+          metalness: 0.08
+        })
+      );
+      halo.rotation.x = Math.PI / 2;
+
+      stem.position.set(terminal.position.x, 2.14, terminal.position.z + 0.42);
+      meter.position.set(terminal.position.x, 2.24, terminal.position.z + 0.42);
+      halo.position.set(terminal.position.x, 2.66, terminal.position.z + 0.42);
+
+      this.scene.add(stem, meter, halo);
+
+      const widget: TerminalWidgetMeshes = {
+        stem,
+        meter,
+        halo,
+        state: {
+          label: 'Idle',
+          intensity: 0.45
+        }
+      };
+
+      this.terminalWidgets.set(terminalId, widget);
+      this.applyWidgetState(terminalId, widget);
+    }
+  }
+
+  private animateTerminalWidgets(elapsedSeconds: number): void {
+    const selectedTerminalId = this.terminalDirector.getSelectedTerminalId();
+    for (const [terminalId, widget] of this.terminalWidgets.entries()) {
+      const highlight = terminalId === selectedTerminalId ? 1 : 0;
+      const pulseAmplitude = this.reduceFlashing ? 0.02 : 0.05;
+      const pulse = 1 + Math.sin(elapsedSeconds * 2.8 + (highlight > 0 ? Math.PI / 3 : 0)) * pulseAmplitude;
+      widget.halo.scale.setScalar(pulse + highlight * 0.08);
+      const haloMaterial = widget.halo.material;
+      if (haloMaterial instanceof MeshStandardMaterial) {
+        haloMaterial.emissiveIntensity = this.reduceFlashing ? 0.2 + highlight * 0.15 : 0.3 + highlight * 0.35;
+      }
+    }
+  }
+
+  private refreshWidgetHighlights(): void {
+    for (const [terminalId, widget] of this.terminalWidgets.entries()) {
+      this.applyWidgetState(terminalId, widget);
+    }
+  }
+
+  private applyWidgetState(terminalId: HubTerminalId, widget: TerminalWidgetMeshes): void {
+    const intensity = this.clamp01(widget.state.intensity);
+    const highlight = terminalId === this.terminalDirector.getSelectedTerminalId();
+
+    widget.meter.scale.y = 0.18 + intensity * 0.82;
+    widget.meter.position.y = 2.14 + widget.meter.scale.y * 0.5;
+
+    const meterMaterial = widget.meter.material;
+    if (meterMaterial instanceof MeshStandardMaterial) {
+      const meterColor = this.resolveMeterColor(intensity, highlight);
+      meterMaterial.color.copy(meterColor);
+      meterMaterial.emissive.copy(meterColor);
+      meterMaterial.emissiveIntensity = 0.25 + intensity * 0.7 + (highlight ? 0.2 : 0);
+    }
+
+    const stemMaterial = widget.stem.material;
+    if (stemMaterial instanceof MeshStandardMaterial) {
+      const stemBoost = 0.14 + intensity * 0.3;
+      stemMaterial.emissiveIntensity = highlight ? stemBoost + 0.18 : stemBoost;
+    }
+
+    const haloMaterial = widget.halo.material;
+    if (haloMaterial instanceof MeshStandardMaterial) {
+      const haloColor = this.resolveMeterColor(Math.min(1, intensity + 0.14), highlight);
+      haloMaterial.color.copy(haloColor);
+      haloMaterial.emissive.copy(haloColor);
+    }
+
+    widget.halo.userData.label = widget.state.label;
   }
 
   private createPointerBeacon(color: number): Mesh {
@@ -201,6 +344,20 @@ export class PilgrimsBelfryScene {
   private getTerminalRingAnchor(): Vector3 {
     const selectedTerminal = this.terminalMeshes[this.terminalDirector.getSelectedIndex()];
     return new Vector3(selectedTerminal.position.x, 0.86, selectedTerminal.position.z);
+  }
+
+  private resolveMeterColor(intensity: number, highlighted: boolean): Color {
+    const low = new Color(0x2e4d7d);
+    const high = new Color(0x9fe7ff);
+    const color = low.lerp(high, intensity);
+    if (highlighted) {
+      color.lerp(new Color(0xffffff), 0.2);
+    }
+    return color;
+  }
+
+  private clamp01(value: number): number {
+    return Math.min(1, Math.max(0, value));
   }
 }
 

@@ -1,9 +1,15 @@
 import { Color, Mesh, MeshStandardMaterial } from 'three';
 
 export type HubTerminalAction = 'open-expedition-prep' | 'open-meta-upgrade' | 'back-main-menu';
+export type HubTerminalId = 'expedition-prep-terminal' | 'meta-upgrade-terminal' | 'main-menu-terminal';
+
+export interface HubTerminalWidgetState {
+  readonly label: string;
+  readonly intensity: number;
+}
 
 interface HubTerminalDefinition {
-  readonly id: string;
+  readonly id: HubTerminalId;
   readonly label: string;
   readonly action: HubTerminalAction;
   readonly idleColor: number;
@@ -78,6 +84,14 @@ export class HubTerminalDirector {
   getLabelByIndex(index: number): string | null {
     const palette = HUB_TERMINALS[index];
     return palette?.label ?? null;
+  }
+
+  getTerminalIdByIndex(index: number): HubTerminalId | null {
+    return HUB_TERMINALS[index]?.id ?? null;
+  }
+
+  getSelectedTerminalId(): HubTerminalId {
+    return HUB_TERMINALS[this.selectedIndex].id;
   }
 
   private refreshMaterials(): void {

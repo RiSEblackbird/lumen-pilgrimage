@@ -22,7 +22,8 @@
     "phase5-save-slots",
     "phase5-hub-vr-hand-affordance",
     "phase5-hub-biome-boss-foundation",
-    "phase5-music-director-foundation"
+    "phase5-music-director-foundation",
+    "phase5-hub-terminal-context-widgets"
   ],
   "in_progress": [
     "phase5-campaign-content-scaleout"
@@ -30,7 +31,7 @@
   "next_actions": [
     "wire MusicDirector stem mix values to runtime audio buses once WebAudio routing lands",
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
-    "expand hub terminals with per-terminal contextual world widgets beyond pointer lock beacons"
+    "scale hub widget states into authored terminal geometry/VFX assets once world assembler lands"
   ],
   "smoke_commands": [
     "npm run typecheck",
