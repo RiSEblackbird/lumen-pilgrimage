@@ -21,6 +21,7 @@ import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
 import type { ExpeditionPlan } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
 import { MISSION_TYPE_DEFS } from '../game/encounters/MissionTypes';
+import { SessionBootstrap } from '../bootstrap/SessionBootstrap';
 import { DEFAULT_RUN_MODE, type RunMode } from '../game/state/RunMode';
 import { nextDifficultyId } from '../game/state/DifficultyState';
 
@@ -34,6 +35,7 @@ export class Game {
   private readonly states = new GameStateMachine();
   private readonly desktopInput: DesktopActionAdapter;
   private readonly xrInput: XRActionAdapter;
+  private readonly sessionBootstrap: SessionBootstrap;
   private readonly settings = new SettingsStore();
   private readonly audioDirector: AudioDirector;
   private readonly saves = new SaveManager();
@@ -73,6 +75,7 @@ export class Game {
     this.desktopInput = new DesktopActionAdapter(window);
     this.audioDirector = new AudioDirector(this.audioListener);
     this.xrInput = new XRActionAdapter(this.renderer);
+    this.sessionBootstrap = new SessionBootstrap(this.renderer);
     this.perfHud = DEFAULT_GAME_CONFIG.enableDebugHud ? new PerfHud(container) : null;
     this.menu = new MenuManager(container);
     this.hud = new HudManager(container);
@@ -127,6 +130,12 @@ export class Game {
     this.loop.tick((delta, elapsed) => {
       this.hubScene.tick(elapsed);
       this.audioDirector.tick(delta);
+      const sessionLifecycle = this.sessionBootstrap.tick();
+      this.xrInput.applySessionStatus({
+        active: sessionLifecycle.state !== 'idle',
+        referenceSpaceReady: sessionLifecycle.referenceSpaceReady,
+        lifecycleLabel: sessionLifecycle.statusLabel
+      });
       this.renderer.render(this.scene, this.camera);
       this.updateDebug(delta);
       const desktopActions = this.desktopInput.snapshot();
@@ -137,6 +146,7 @@ export class Game {
       if (!this.runActive) {
         this.syncHubWorldWidgets();
         this.syncHubWristUi();
+        this.vrUi.setStatus(this.xrInput.getSessionStatusLabel());
         this.audioDirector.setHubAmbientMix();
         this.hud.render({
           health: 100,
@@ -171,7 +181,7 @@ export class Game {
 
       const sandbox = this.combatSandbox.update(desktopActions, delta);
       this.audioDirector.applyMusicMix(sandbox.musicMix);
-      this.vrUi.setStatus('In Expedition');
+      this.vrUi.setStatus(`In Expedition · ${this.xrInput.getSessionStatusLabel()}`);
       const objective = this.xrInput.isPresenting()
         ? `${sandbox.objective} / VR Wrist: ${this.vrUi.getStatus()}`
         : sandbox.objective;

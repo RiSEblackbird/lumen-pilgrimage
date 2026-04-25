@@ -5,8 +5,16 @@ export interface XRComfortSettings {
   readonly seatedMode: boolean;
 }
 
+export interface XRSessionStatus {
+  readonly active: boolean;
+  readonly referenceSpaceReady: boolean;
+  readonly lifecycleLabel: string;
+}
+
 export class XRActionAdapter {
   private inSession = false;
+  private referenceSpaceReady = false;
+  private lifecycleLabel = 'XR fallback active (flat-screen)';
   private comfort: XRComfortSettings = {
     snapTurn: true,
     seatedMode: false
@@ -36,16 +44,20 @@ export class XRActionAdapter {
       });
     }
 
-    renderer.xr.addEventListener('sessionstart', () => {
-      this.inSession = true;
-    });
-    renderer.xr.addEventListener('sessionend', () => {
-      this.inSession = false;
-    });
   }
 
   isPresenting(): boolean {
     return this.inSession;
+  }
+
+  applySessionStatus(status: XRSessionStatus): void {
+    this.inSession = status.active;
+    this.referenceSpaceReady = status.referenceSpaceReady;
+    this.lifecycleLabel = status.lifecycleLabel;
+  }
+
+  getSessionStatusLabel(): string {
+    return this.lifecycleLabel;
   }
 
   setComfort(settings: XRComfortSettings): void {
@@ -53,7 +65,10 @@ export class XRActionAdapter {
   }
 
   getComfortStatus(): string {
-    return `${this.comfort.snapTurn ? 'SnapTurn' : 'SmoothTurn'} / ${this.comfort.seatedMode ? 'Seated' : 'Standing'}`;
+    const posture = this.comfort.seatedMode ? 'Seated' : 'Standing';
+    const turnMode = this.comfort.snapTurn ? 'SnapTurn' : 'SmoothTurn';
+    const refSpace = this.referenceSpaceReady ? 'RefSpace OK' : 'RefSpace Recovery';
+    return `${turnMode} / ${posture} / ${refSpace}`;
   }
 
   getControllerPointerRays(): readonly XRPointerRay[] {
@@ -61,7 +76,7 @@ export class XRActionAdapter {
 
     for (const controller of this.controllers) {
       const handedness = this.controllerHandedness.get(controller);
-      if (!handedness || !controller.visible) {
+      if (!this.inSession || !this.referenceSpaceReady || !handedness || !controller.visible) {
         continue;
       }
 
