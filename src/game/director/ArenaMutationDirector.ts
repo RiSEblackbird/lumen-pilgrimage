@@ -38,6 +38,19 @@ export interface ArenaDeviceEffectSnapshot {
   readonly summary: string;
 }
 
+export interface ArenaDeviceVisualHooks {
+  readonly biomeId: string;
+  readonly phaseTitle: string;
+  readonly channels: {
+    readonly hazard: number;
+    readonly focus: number;
+    readonly guard: number;
+    readonly overburn: number;
+  };
+  readonly dominantDeviceLabel: string;
+  readonly visualSummary: string;
+}
+
 const DEFAULT_DEVICE_DEFS: readonly ArenaDeviceDefinition[] = [
   { id: 'choir-lattice', label: 'Choir Lattice', baseIntensity: 0.7, effectType: 'hazard-damage', effectRate: 1.2 },
   { id: 'hazard-lane', label: 'Hazard Lane', baseIntensity: 0.6, effectType: 'guard-tax', effectRate: 1.1 }
@@ -155,6 +168,49 @@ export class ArenaMutationDirector {
       phaseTitle: this.phaseTitle,
       effects,
       summary: this.describeEffects(effects)
+    };
+  }
+
+  visualHooksSnapshot(): ArenaDeviceVisualHooks {
+    const effectSnapshot = this.effectSnapshot();
+    let hazard = 0;
+    let focus = 0;
+    let guard = 0;
+    let overburn = 0;
+    let dominantLabel = 'No arena devices active';
+    let dominantIntensity = 0;
+
+    for (const effect of effectSnapshot.effects) {
+      const normalized = this.clamp(effect.intensity / 1.95, 0, 1);
+      if (effect.intensity > dominantIntensity) {
+        dominantIntensity = effect.intensity;
+        dominantLabel = effect.label;
+      }
+
+      if (effect.effectType === 'hazard-damage') {
+        hazard = Math.max(hazard, normalized);
+      } else if (effect.effectType === 'focus-drain') {
+        focus = Math.max(focus, normalized);
+      } else if (effect.effectType === 'guard-tax') {
+        guard = Math.max(guard, normalized);
+      } else if (effect.effectType === 'overburn-pressure') {
+        overburn = Math.max(overburn, normalized);
+      }
+    }
+
+    const channels = {
+      hazard: Number(hazard.toFixed(2)),
+      focus: Number(focus.toFixed(2)),
+      guard: Number(guard.toFixed(2)),
+      overburn: Number(overburn.toFixed(2))
+    };
+
+    return {
+      biomeId: this.biomeId,
+      phaseTitle: this.phaseTitle,
+      channels,
+      dominantDeviceLabel: dominantLabel,
+      visualSummary: `Arena Visuals H${Math.round(channels.hazard * 100)} F${Math.round(channels.focus * 100)} G${Math.round(channels.guard * 100)} O${Math.round(channels.overburn * 100)} · ${dominantLabel}`
     };
   }
 
