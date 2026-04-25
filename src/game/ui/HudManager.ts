@@ -17,6 +17,7 @@ export interface HudSnapshot {
   readonly encounterLabel: string;
   readonly contractLabel: string;
   readonly bossLabel: string;
+  readonly bossHealthLabel: string;
   readonly arenaMutationLabel: string;
   readonly loadoutPoolLabel: string;
 }
@@ -61,6 +62,7 @@ export class HudManager {
       `Pressure: ${snapshot.pressureLabel}`,
       `Encounter: ${snapshot.encounterLabel}`,
       `Boss: ${snapshot.bossLabel}`,
+      snapshot.bossHealthLabel,
       `Arena: ${snapshot.arenaMutationLabel}`,
       snapshot.loadoutPoolLabel,
       `Reward: ${snapshot.rewardLabel}`,

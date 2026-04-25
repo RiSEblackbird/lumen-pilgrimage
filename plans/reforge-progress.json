@@ -13,13 +13,14 @@
     "phase4-hub-meta-progression",
     "phase4-boss-contracts",
     "phase4-biome-content-expansion",
-    "phase4-expedition-prep-loadout"
+    "phase4-expedition-prep-loadout",
+    "phase4-dedicated-boss-actor-foundation"
   ],
   "in_progress": [
     "phase4-hub-biome-boss-foundation"
   ],
   "next_actions": [
-    "implement dedicated boss actors beyond wave-contract placeholder behavior",
+    "integrate boss actor director with authored arena devices and boss-specific VFX/audio hooks",
     "expand expedition prep into world-space terminal + wrist UI parity",
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions"
   ],
@@ -29,7 +30,7 @@
     "npm run dev"
   ],
   "risks": [
-    "boss implementation is still wave-contract driven; dedicated boss actor and encounter scripting remain missing",
+    "boss implementation now has dedicated actor HP/attack loop, but encounter scripting is still partly wave-driven and lacks authored arena devices",
     "new biome content is data-level and needs authored room geometry, hazards, and mission scripting to reach production quality"
   ]
 }

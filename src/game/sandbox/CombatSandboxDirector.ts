@@ -1,4 +1,5 @@
 import type { ActionState } from '../../engine/input/ActionMap';
+import { BossActorDirector } from '../director/BossActorDirector';
 import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
 import { RewardDirector, type RewardChoiceState } from '../director/RewardDirector';
@@ -80,6 +81,7 @@ export interface CombatSandboxSnapshot {
   readonly encounterLabel: string;
   readonly contractLabel: string;
   readonly bossLabel: string;
+  readonly bossHealthLabel: string;
   readonly arenaMutationLabel: string;
   readonly loadoutPoolLabel: string;
 }
@@ -94,6 +96,7 @@ export class CombatSandboxDirector {
   private readonly coordinator = new EnemyCoordinator();
   private readonly rewards = new RewardDirector();
   private readonly encounter = new EncounterDirector();
+  private readonly bossActor = new BossActorDirector();
   private latestEncounter = this.encounter.snapshot();
 
   private enemySerial = 0;
@@ -124,6 +127,7 @@ export class CombatSandboxDirector {
   private bossPhaseRule: BossPhaseRule | null = null;
   private bossPhaseElapsed = 0;
   private bossLabel = 'No Warden contact';
+  private bossHealthLabel = 'Boss HP: -';
   private arenaMutationLabel = 'Arena stable';
   private hazardTickAccumulator = 0;
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
@@ -209,7 +213,9 @@ export class CombatSandboxDirector {
     this.bossPhaseRule = null;
     this.bossPhaseElapsed = 0;
     this.bossLabel = 'No Warden contact';
+    this.bossHealthLabel = 'Boss HP: -';
     this.arenaMutationLabel = 'Arena stable';
+    this.bossActor.stop();
     this.hazardTickAccumulator = 0;
     this.rewards.setEquippedRelics([]);
     this.previousActions = {
@@ -260,6 +266,7 @@ export class CombatSandboxDirector {
       encounterLabel: this.encounterLabel,
       contractLabel: this.getContractLabel(),
       bossLabel: this.bossLabel,
+      bossHealthLabel: this.bossHealthLabel,
       arenaMutationLabel: this.arenaMutationLabel,
       loadoutPoolLabel: this.loadoutPoolLabel
     };
@@ -360,15 +367,33 @@ export class CombatSandboxDirector {
   }
 
   private primaryAttack(): void {
+    const weapon = WEAPON_DEFS[this.weaponIndex];
+    const overburnMultiplier = 1 + this.overburn / 150;
+    const parryBoostMultiplier = this.parryDamageBoostTimer > 0 ? 1.2 : 1;
+
+    if (this.bossActor.isActive()) {
+      const bossDamage = weapon.baseDamage * overburnMultiplier * parryBoostMultiplier;
+      const defeated = this.bossActor.applyPlayerDamage(bossDamage);
+      this.overburn = Math.min(MAX_OVERBURN, this.overburn + weapon.overburnGain);
+      const bossSnapshot = this.bossActor.snapshot();
+      if (defeated) {
+        this.bossLabel = `${this.bossContract?.bossName ?? 'Warden'} neutralized`;
+        this.bossHealthLabel = 'Boss HP: 0%';
+        this.objective = 'Warden defeated. Extract route stabilized.';
+      } else {
+        const hpPercent = bossSnapshot.maxHealth > 0 ? (bossSnapshot.currentHealth / bossSnapshot.maxHealth) * 100 : 0;
+        this.bossHealthLabel = `Boss HP: ${hpPercent.toFixed(0)}%`;
+        this.objective = `Warden stagger pressure maintained (${bossSnapshot.attackLabel}).`;
+      }
+      return;
+    }
+
     if (this.enemies.length === 0) {
       return;
     }
 
     const modifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
-    const weapon = WEAPON_DEFS[this.weaponIndex];
     const target = this.enemies[0];
-    const overburnMultiplier = 1 + this.overburn / 150;
-    const parryBoostMultiplier = this.parryDamageBoostTimer > 0 ? 1.2 : 1;
     const staggerMultiplier = target.staggerTimer > 0 ? modifiers.staggerDamageMultiplier : 1;
     const highOverburnBonus = this.overburn >= 50 && this.rewards.getEquippedRelics().includes('sunshard-buckle') ? 1.12 : 1;
     const totalMultiplier = overburnMultiplier * parryBoostMultiplier * staggerMultiplier * modifiers.primaryDamageMultiplier * highOverburnBonus;
@@ -500,7 +525,7 @@ export class CombatSandboxDirector {
       return;
     }
 
-    if (this.enemies.length === 0) {
+    if (this.enemies.length === 0 && !this.bossActor.isActive()) {
       this.advanceEncounterRoom();
     }
   }
@@ -589,8 +614,10 @@ export class CombatSandboxDirector {
     if (!roomTags.includes('boss-approach')) {
       this.bossContract = null;
       this.bossPhaseRule = null;
+      this.bossActor.stop();
       this.bossPhaseElapsed = 0;
       this.bossLabel = 'No Warden contact';
+      this.bossHealthLabel = 'Boss HP: -';
       this.arenaMutationLabel = 'Arena stable';
       this.bossPhase = 0;
       this.hazardTickAccumulator = 0;
@@ -602,12 +629,17 @@ export class CombatSandboxDirector {
     this.bossPhaseRule = this.bossContract ? resolveBossPhase(this.bossContract, this.bossPhaseElapsed, this.overburn) : null;
     this.bossPhase = this.bossPhaseRule?.index ?? 1;
     if (!this.bossContract || !this.bossPhaseRule) {
+      this.bossActor.stop();
       this.bossLabel = 'Unknown Warden signature';
+      this.bossHealthLabel = 'Boss HP: unknown';
       this.arenaMutationLabel = 'Arena mutation unknown';
       this.objective = 'Warden trace detected. Continue pressure to extract phase data.';
       return;
     }
+    this.bossActor.begin(this.bossContract, this.bossPhaseRule);
+    const bossSnapshot = this.bossActor.snapshot();
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${this.bossPhase}/${this.bossContract.phases.length} (${this.bossPhaseRule.title})`;
+    this.bossHealthLabel = `Boss HP: ${bossSnapshot.maxHealth > 0 ? ((bossSnapshot.currentHealth / bossSnapshot.maxHealth) * 100).toFixed(0) : '0'}%`;
     this.arenaMutationLabel = this.bossPhaseRule.arenaMutationSummary;
     this.objective = `${this.bossContract.bossName} 接触。${this.bossPhaseRule.mechanicSummary}`;
   }
@@ -621,6 +653,7 @@ export class CombatSandboxDirector {
     const resolvedPhase = resolveBossPhase(this.bossContract, this.bossPhaseElapsed, this.overburn);
     const phaseChanged = this.bossPhaseRule?.index !== resolvedPhase.index;
     this.bossPhaseRule = resolvedPhase;
+    this.bossActor.setPhaseRule(resolvedPhase);
     this.bossPhase = resolvedPhase.index;
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${resolvedPhase.index}/${this.bossContract.phases.length} (${resolvedPhase.title})`;
     this.arenaMutationLabel = resolvedPhase.arenaMutationSummary;
@@ -628,6 +661,28 @@ export class CombatSandboxDirector {
       this.objective = `${this.bossContract.bossName} phase shift: ${resolvedPhase.mechanicSummary}`;
       this.hazardTickAccumulator = 0;
       this.spawnWave();
+    }
+
+    const bossAttack = this.bossActor.update(deltaSeconds, this.previousActions.guard);
+    if (bossAttack.dealtHealthDamage > 0) {
+      this.health = Math.max(0, this.health - bossAttack.dealtHealthDamage);
+      this.roomDamageTaken += bossAttack.dealtHealthDamage;
+    }
+    if (bossAttack.dealtGuardDamage > 0) {
+      this.guard = Math.max(0, this.guard - bossAttack.dealtGuardDamage);
+    }
+    if (bossAttack.objectiveCallout) {
+      this.objective = `${resolvedPhase.title}: ${bossAttack.objectiveCallout} を処理。`;
+    }
+
+    const bossSnapshot = this.bossActor.snapshot();
+    if (bossSnapshot.active) {
+      const hpPercent = bossSnapshot.maxHealth > 0 ? (bossSnapshot.currentHealth / bossSnapshot.maxHealth) * 100 : 0;
+      this.bossHealthLabel = `Boss HP: ${hpPercent.toFixed(0)}%`;
+    }
+
+    if (this.health <= 0) {
+      this.resetAfterDown();
     }
   }
 
@@ -690,6 +745,11 @@ export class CombatSandboxDirector {
   }
 
   private getTelegraphLabel(): string {
+    const bossSnapshot = this.bossActor.snapshot();
+    if (bossSnapshot.active && bossSnapshot.telegraphLabel !== 'No immediate telegraph') {
+      return `Boss: ${bossSnapshot.telegraphLabel}`;
+    }
+
     const telegraphedEnemy = this.enemies.find((enemy) => enemy.attackTimer > 0 && enemy.attackTimer <= enemy.telegraphLead);
     if (!telegraphedEnemy) {
       return 'No immediate telegraph';
