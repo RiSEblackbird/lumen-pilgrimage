@@ -25,7 +25,8 @@
     "phase5-music-director-foundation",
     "phase5-hub-terminal-context-widgets",
     "phase5-music-runtime-bus-wiring",
-    "phase5-loot-table-validation"
+    "phase5-loot-table-validation",
+    "phase5-enemy-catalog-contract-wiring"
   ],
   "in_progress": [
     "phase5-campaign-content-scaleout"

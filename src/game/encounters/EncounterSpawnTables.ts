@@ -1,3 +1,4 @@
+import { getEnemyDisplayName } from '../../content/enemies/EnemyCatalog';
 import type { RoomTag } from './EncounterRuleSet';
 
 export interface EncounterEnemyTemplate {
@@ -20,7 +21,7 @@ interface EncounterSpawnContext {
 const EMBER_BASE: readonly EncounterEnemyTemplate[] = [
   {
     archetypeId: 'ash-mote',
-    label: 'Ash Mote',
+    label: getEnemyDisplayName('ash-mote'),
     baseHealth: 30,
     baseDamage: 8,
     attackInterval: 2.2,
@@ -30,7 +31,7 @@ const EMBER_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'candle-penitent',
-    label: 'Candle Penitent',
+    label: getEnemyDisplayName('candle-penitent'),
     baseHealth: 42,
     baseDamage: 10,
     attackInterval: 3,
@@ -40,7 +41,7 @@ const EMBER_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'furnace-thurifer',
-    label: 'Furnace Thurifer',
+    label: getEnemyDisplayName('furnace-thurifer'),
     baseHealth: 60,
     baseDamage: 14,
     attackInterval: 4.4,
@@ -53,7 +54,7 @@ const EMBER_BASE: readonly EncounterEnemyTemplate[] = [
 const MOON_BASE: readonly EncounterEnemyTemplate[] = [
   {
     archetypeId: 'reservoir-monk',
-    label: 'Reservoir Monk',
+    label: getEnemyDisplayName('reservoir-monk'),
     baseHealth: 34,
     baseDamage: 9,
     attackInterval: 2.4,
@@ -63,7 +64,7 @@ const MOON_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'moon-arbalist',
-    label: 'Moon Arbalist',
+    label: getEnemyDisplayName('moon-arbalist'),
     baseHealth: 40,
     baseDamage: 12,
     attackInterval: 3.6,
@@ -73,7 +74,7 @@ const MOON_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'glass-eel',
-    label: 'Glass Eel',
+    label: getEnemyDisplayName('glass-eel'),
     baseHealth: 52,
     baseDamage: 14,
     attackInterval: 3.8,
@@ -86,7 +87,7 @@ const MOON_BASE: readonly EncounterEnemyTemplate[] = [
 const BIRCH_BASE: readonly EncounterEnemyTemplate[] = [
   {
     archetypeId: 'birch-widow',
-    label: 'Birch Widow',
+    label: getEnemyDisplayName('birch-widow'),
     baseHealth: 38,
     baseDamage: 11,
     attackInterval: 2.5,
@@ -96,7 +97,7 @@ const BIRCH_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'pollen-choir',
-    label: 'Pollen Choir',
+    label: getEnemyDisplayName('pollen-choir'),
     baseHealth: 32,
     baseDamage: 8,
     attackInterval: 2.1,
@@ -106,7 +107,7 @@ const BIRCH_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'root-shepherd',
-    label: 'Root Shepherd',
+    label: getEnemyDisplayName('root-shepherd'),
     baseHealth: 66,
     baseDamage: 15,
     attackInterval: 4.2,
@@ -119,7 +120,7 @@ const BIRCH_BASE: readonly EncounterEnemyTemplate[] = [
 const OBSIDIAN_BASE: readonly EncounterEnemyTemplate[] = [
   {
     archetypeId: 'artery-hound',
-    label: 'Artery Hound',
+    label: getEnemyDisplayName('artery-hound'),
     baseHealth: 36,
     baseDamage: 10,
     attackInterval: 2.3,
@@ -129,7 +130,7 @@ const OBSIDIAN_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'mirror-deacon',
-    label: 'Mirror Deacon',
+    label: getEnemyDisplayName('mirror-deacon'),
     baseHealth: 46,
     baseDamage: 13,
     attackInterval: 3.5,
@@ -139,7 +140,7 @@ const OBSIDIAN_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'blackglass-warden',
-    label: 'Blackglass Warden',
+    label: getEnemyDisplayName('blackglass-warden'),
     baseHealth: 72,
     baseDamage: 16,
     attackInterval: 4.6,
@@ -152,7 +153,7 @@ const OBSIDIAN_BASE: readonly EncounterEnemyTemplate[] = [
 const DAWN_BASE: readonly EncounterEnemyTemplate[] = [
   {
     archetypeId: 'dawn-tender',
-    label: 'Dawn Tender',
+    label: getEnemyDisplayName('dawn-tender'),
     baseHealth: 44,
     baseDamage: 11,
     attackInterval: 2.8,
@@ -162,7 +163,7 @@ const DAWN_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'halo-drone',
-    label: 'Halo Drone',
+    label: getEnemyDisplayName('halo-drone'),
     baseHealth: 34,
     baseDamage: 10,
     attackInterval: 2.2,
@@ -172,7 +173,7 @@ const DAWN_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'seraph-machinist',
-    label: 'Seraph Machinist',
+    label: getEnemyDisplayName('seraph-machinist'),
     baseHealth: 74,
     baseDamage: 18,
     attackInterval: 4.7,
@@ -185,7 +186,7 @@ const DAWN_BASE: readonly EncounterEnemyTemplate[] = [
 const FINAL_BASE: readonly EncounterEnemyTemplate[] = [
   {
     archetypeId: 'cantor-shade',
-    label: 'Cantor Shade',
+    label: getEnemyDisplayName('cantor-shade'),
     baseHealth: 48,
     baseDamage: 14,
     attackInterval: 2.5,
@@ -195,7 +196,7 @@ const FINAL_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'broken-choir-lancer',
-    label: 'Broken Choir Lancer',
+    label: getEnemyDisplayName('broken-choir-lancer'),
     baseHealth: 62,
     baseDamage: 18,
     attackInterval: 3.8,
@@ -205,7 +206,7 @@ const FINAL_BASE: readonly EncounterEnemyTemplate[] = [
   },
   {
     archetypeId: 'sun-shard-seraph',
-    label: 'Sun Shard Seraph',
+    label: getEnemyDisplayName('sun-shard-seraph'),
     baseHealth: 84,
     baseDamage: 21,
     attackInterval: 5,
@@ -226,7 +227,7 @@ const BIOME_ENEMY_TEMPLATES: Readonly<Record<string, readonly EncounterEnemyTemp
 
 const SECRET_TEMPLATE: EncounterEnemyTemplate = {
   archetypeId: 'echo-sentinel',
-  label: 'Echo Sentinel',
+  label: getEnemyDisplayName('echo-sentinel'),
   baseHealth: 55,
   baseDamage: 12,
   attackInterval: 3.2,
@@ -237,7 +238,7 @@ const SECRET_TEMPLATE: EncounterEnemyTemplate = {
 
 const ELITE_TEMPLATE: EncounterEnemyTemplate = {
   archetypeId: 'warden-vassal',
-  label: 'Warden Vassal',
+  label: getEnemyDisplayName('warden-vassal'),
   baseHealth: 88,
   baseDamage: 18,
   attackInterval: 4.8,

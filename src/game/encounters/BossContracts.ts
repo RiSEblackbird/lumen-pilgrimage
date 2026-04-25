@@ -1,3 +1,5 @@
+import { getEnemyDisplayName } from '../../content/enemies/EnemyCatalog';
+
 export interface BossPhaseRule {
   readonly index: number;
   readonly title: string;
@@ -15,6 +17,7 @@ export interface BossPhaseRule {
 
 export interface BossContract {
   readonly biomeId: string;
+  readonly bossEnemyId: string;
   readonly bossName: string;
   readonly contractLabel: string;
   readonly phases: readonly BossPhaseRule[];
@@ -23,7 +26,8 @@ export interface BossContract {
 export const BOSS_CONTRACTS: readonly BossContract[] = [
   {
     biomeId: 'ember-ossuary',
-    bossName: 'Bell of Cinders',
+    bossEnemyId: 'bell-of-cinders',
+    bossName: getEnemyDisplayName('bell-of-cinders'),
     contractLabel: 'Cinder Litany',
     phases: [
       {
@@ -72,7 +76,8 @@ export const BOSS_CONTRACTS: readonly BossContract[] = [
   },
   {
     biomeId: 'moon-reservoir',
-    bossName: 'The Thirteen-Eyed Pool',
+    bossEnemyId: 'thirteen-eyed-pool',
+    bossName: getEnemyDisplayName('thirteen-eyed-pool'),
     contractLabel: 'Lunar Refraction',
     phases: [
       {
@@ -121,7 +126,8 @@ export const BOSS_CONTRACTS: readonly BossContract[] = [
   },
   {
     biomeId: 'birch-astrarium',
-    bossName: 'Oracle of Bark and Polaris',
+    bossEnemyId: 'oracle-of-bark-and-polaris',
+    bossName: getEnemyDisplayName('oracle-of-bark-and-polaris'),
     contractLabel: 'Astral Root Canticle',
     phases: [
       {
@@ -170,7 +176,8 @@ export const BOSS_CONTRACTS: readonly BossContract[] = [
   },
   {
     biomeId: 'obsidian-artery',
-    bossName: 'The Warden of Split Reflection',
+    bossEnemyId: 'warden-of-split-reflection',
+    bossName: getEnemyDisplayName('warden-of-split-reflection'),
     contractLabel: 'Fractured Vesper',
     phases: [
       {
@@ -219,7 +226,8 @@ export const BOSS_CONTRACTS: readonly BossContract[] = [
   },
   {
     biomeId: 'dawn-foundry',
-    bossName: 'Daybreak Engine',
+    bossEnemyId: 'daybreak-engine',
+    bossName: getEnemyDisplayName('daybreak-engine'),
     contractLabel: 'Solar Forge Ordinance',
     phases: [
       {
@@ -268,7 +276,8 @@ export const BOSS_CONTRACTS: readonly BossContract[] = [
   },
   {
     biomeId: 'broken-sun-choir',
-    bossName: 'The Last Cantor',
+    bossEnemyId: 'last-cantor-broken-sun-choir',
+    bossName: getEnemyDisplayName('last-cantor-broken-sun-choir'),
     contractLabel: 'Broken Sun Requiem',
     phases: [
       {
