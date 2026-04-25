@@ -1,4 +1,5 @@
 import type { ActionState } from '../../engine/input/ActionMap';
+import { MusicDirector } from '../../engine/audio/MusicDirector';
 import { BossActorDirector } from '../director/BossActorDirector';
 import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
@@ -90,6 +91,7 @@ export interface CombatSandboxSnapshot {
   readonly arenaMutationLabel: string;
   readonly loadoutPoolLabel: string;
   readonly ashSightLabel: string;
+  readonly musicLabel: string;
 }
 
 const MAX_HEALTH = 100;
@@ -108,6 +110,7 @@ export class CombatSandboxDirector {
   private readonly bossActor = new BossActorDirector();
   private readonly arenaMutation = new ArenaMutationDirector();
   private readonly arenaAudio = new BossArenaAudioDirector();
+  private readonly musicDirector = new MusicDirector();
   private latestEncounter = this.encounter.snapshot();
 
   private enemySerial = 0;
@@ -141,6 +144,7 @@ export class CombatSandboxDirector {
   private bossHealthLabel = 'Boss HP: -';
   private arenaMutationLabel = 'Arena stable';
   private arenaAudioLabel = 'Audio reactive bus idle';
+  private musicLabel = 'Music Mix E100 T0 C0 K0 B0 · broken sun drones';
   private hazardTickAccumulator = 0;
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
   private ashSightCooldown = 0;
@@ -239,6 +243,7 @@ export class CombatSandboxDirector {
     this.bossHealthLabel = 'Boss HP: -';
     this.arenaMutationLabel = 'Arena stable';
     this.arenaAudioLabel = 'Audio reactive bus idle';
+    this.musicLabel = 'Music Mix E100 T0 C0 K0 B0 · broken sun drones';
     this.bossActor.stop();
     this.arenaMutation.stop();
     this.arenaAudio.stop();
@@ -263,6 +268,7 @@ export class CombatSandboxDirector {
 
     this.initializeFromSnapshot(snapshot);
     this.applyModeObjectiveBias();
+    this.updateMusicMix();
     this.encounterLabel = this.latestEncounter.progressLabel;
     this.spawnWave();
   }
@@ -276,6 +282,7 @@ export class CombatSandboxDirector {
     this.updateArenaMutationPulse(deltaSeconds);
     this.applyArenaMutationHazards(deltaSeconds);
     this.resolveEnemyPressure(deltaSeconds, actions);
+    this.updateMusicMix();
     this.previousActions = actions;
 
     return {
@@ -300,8 +307,21 @@ export class CombatSandboxDirector {
       bossHealthLabel: this.bossHealthLabel,
       arenaMutationLabel: `${this.arenaMutationLabel} / ${this.arenaAudioLabel}`,
       loadoutPoolLabel: this.loadoutPoolLabel,
-      ashSightLabel: this.getAshSightLabel()
+      ashSightLabel: this.getAshSightLabel(),
+      musicLabel: this.musicLabel
     };
+  }
+
+  private updateMusicMix(): void {
+    this.musicDirector.configureBiome(this.expeditionPlan.biomeId);
+    this.musicDirector.evaluateMix({
+      enemiesRemaining: this.enemies.length,
+      overburn: this.overburn,
+      health: this.health,
+      bossActive: this.bossContract !== null,
+      bossPhaseTitle: this.bossPhaseRule?.title ?? null
+    });
+    this.musicLabel = this.musicDirector.snapshot().mixLabel;
   }
 
   private initializeFromSnapshot(snapshot: ContinueSnapshot | null): void {

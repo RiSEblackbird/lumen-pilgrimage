@@ -21,6 +21,7 @@ export interface HudSnapshot {
   readonly arenaMutationLabel: string;
   readonly loadoutPoolLabel: string;
   readonly ashSightLabel: string;
+  readonly musicLabel: string;
 }
 
 export class HudManager {
@@ -67,6 +68,7 @@ export class HudManager {
       `Arena: ${snapshot.arenaMutationLabel}`,
       snapshot.loadoutPoolLabel,
       snapshot.ashSightLabel,
+      snapshot.musicLabel,
       `Reward: ${snapshot.rewardLabel}`,
       `Relics: ${relicSummary}`,
       `Objective: ${snapshot.objective}`

@@ -5,6 +5,7 @@
 - `bootstrap/`: 起動シーケンス。
 - `core/`: Game 本体、レンダーループ、構成。
 - `engine/input`: Desktop/XR の入力抽象。
+- `engine/audio`: biome / phase / pressure 連動の音響ミックス制御。
 - `engine/save`: セーブデータ（expedition + meta progression）と設定保存。
 - `engine/debug`: Perf HUD。
 - `game/state`: game state machine。
@@ -24,6 +25,7 @@
   - `GameStateMachine`
   - `DesktopActionAdapter`
   - `XRActionAdapter`
+  - `MusicDirector`
   - `SaveManager`
   - `SettingsStore`
   - `PerfHud`
@@ -71,6 +73,7 @@
 - `SaveManager.resetSlot` は New Game の slot 初期化を担い、既存 continue snapshot と meta progression を安全に再生成する。
 - `CombatSandboxDirector` は `boss-approach` room tag を検知すると `BossContracts` から biome 別 contract を読み込み、時間 + Overburn 条件で phase を進行し、phase ごとの攻撃間隔/telegraph/被ダメ補正を適用する。
 - `CombatSandboxDirector` は `ArenaMutationDirector` を通じて boss phase の `arenaMutationSummary` を biome 固有 device 状態（強度％）へ変換し、HUD と objective へ反映する。
+- `CombatSandboxDirector` は `MusicDirector` へ enemy pressure / overburn / boss phase を入力し、exploration/threat/combat/clutch/boss stem ミックスを算出して HUD 表示へ反映する。
 - `CombatSandboxDirector` は loadout availability から pool 数（W/O/S の解放数/総数）を算出し、HUD へ表示する。
 - `XRActionAdapter` は接続済み controller（left/right）から pointer ray を生成し、`PilgrimsBelfryScene` は複数rayヒット時に最短距離を採用して Hub terminal selection を更新する（HMD前方固定rayは不使用）。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。

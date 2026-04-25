@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 5 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。`ArenaMutationDirector` は boss phase の `arenaMutationSummary` を biome 別 device 強度ラベルと定期 pulse callout に変換して HUD/objective に反映します。加えて `BossArenaAudioDirector` を導入し、boss phase / overburn / mutation pulse を biome 固有 motif（例: ember choir, moon bell, blackglass ticks）へマッピングして、objective callout と HUD に audio-reactive ミックス状態を表示するようにしました。MainMenu には Continue / New Game / Mode Select / Settings / Credits と 3 つの Save Slot 切替を実装し、Mode Select から Campaign / Contracts / Boss Rush / Endless Collapse を選択して run state を切り替えられます。Hub のXR端末選択は HMD 前方固定ではなく left/right controller ray の最短ヒット解決に更新し、VR の意図しない terminal 誤ロックを抑えています。さらに、選択中 terminal に対して left/right hand 別の world-space beacon を表示し、wrist prompt と合わせてどちらの手が lock しているかを即時判別できるようにしました。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 5 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。`ArenaMutationDirector` は boss phase の `arenaMutationSummary` を biome 別 device 強度ラベルと定期 pulse callout に変換して HUD/objective に反映します。加えて `BossArenaAudioDirector` を導入し、boss phase / overburn / mutation pulse を biome 固有 motif（例: ember choir, moon bell, blackglass ticks）へマッピングして、objective callout と HUD に audio-reactive ミックス状態を表示するようにしました。今回 `MusicDirector` も追加し、探索/脅威/戦闘/クラッチ/ボス stem ミックスを biome・敵圧・overburn・boss phase に応じて算出し、HUD から現在の music レイヤー状態を追跡できるようにしました。MainMenu には Continue / New Game / Mode Select / Settings / Credits と 3 つの Save Slot 切替を実装し、Mode Select から Campaign / Contracts / Boss Rush / Endless Collapse を選択して run state を切り替えられます。Hub のXR端末選択は HMD 前方固定ではなく left/right controller ray の最短ヒット解決に更新し、VR の意図しない terminal 誤ロックを抑えています。さらに、選択中 terminal に対して left/right hand 別の world-space beacon を表示し、wrist prompt と合わせてどちらの手が lock しているかを即時判別できるようにしました。
 
 ## セットアップ
 
@@ -65,6 +65,7 @@ npm run check
   - `ArenaMutationDirector` により arena mutation を biome 固有 device（例: Censer Vents, Mirror Gates, Overcharge Rails）へ投影し、phase 進行で強度を更新
   - boss 戦中に arena device pulse callout を objective へ注入し、phase 情報の読解レイヤーを追加
   - `BossArenaAudioDirector` により arena mutation pulse / hazard tick を biome 固有 audio motif に変換し、phase ごとの reactive mix を HUD/objective へ反映
+  - `MusicDirector` により biome / enemy pressure / overburn / boss phase に応じた music stem mix（exploration / threat / combat / clutch / boss）を算出し、HUD へ可視化
   - HUD に boss HP readout と boss 専用 telegraph を表示
   - `Ash Sight`（Focus 消費 + cooldown）を tactical reveal として追加し、telegraph/route 読解を補助
   - difficulty layer（Pilgrim / Trial / Martyr）を追加し、敵HP/被ダメージ圧/telegraph 速度を mode 横断で調整
@@ -110,6 +111,8 @@ src/
     save/
       SaveManager.ts
       SettingsStore.ts
+    audio/
+      MusicDirector.ts
     debug/
       PerfHud.ts
   game/

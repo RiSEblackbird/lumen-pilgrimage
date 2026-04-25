@@ -153,7 +153,8 @@ export class Game {
           bossHealthLabel: 'Boss HP: -',
           arenaMutationLabel: 'Arena stable',
           loadoutPoolLabel: this.metaState.toLoadoutPoolLabel(),
-          ashSightLabel: 'Ash Sight READY (Cost 20 Focus, CD 12s)'
+          ashSightLabel: 'Ash Sight READY (Cost 20 Focus, CD 12s)',
+          musicLabel: 'Music Mix E100 T0 C0 K0 B0 · hub sanctuary ambience'
         });
         this.menu.setState(this.states.current);
         return;

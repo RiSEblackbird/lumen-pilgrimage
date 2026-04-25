@@ -21,13 +21,14 @@
     "phase5-xr-controller-pointer",
     "phase5-save-slots",
     "phase5-hub-vr-hand-affordance",
-    "phase5-hub-biome-boss-foundation"
+    "phase5-hub-biome-boss-foundation",
+    "phase5-music-director-foundation"
   ],
   "in_progress": [
     "phase5-campaign-content-scaleout"
   ],
   "next_actions": [
-    "hook biome-specific audio motifs to real MusicDirector stem buses once audio runtime lands",
+    "wire MusicDirector stem mix values to runtime audio buses once WebAudio routing lands",
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
     "expand hub terminals with per-terminal contextual world widgets beyond pointer lock beacons"
   ],
