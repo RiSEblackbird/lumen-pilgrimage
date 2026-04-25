@@ -5,6 +5,7 @@ import { GameLoop } from './GameLoop';
 import { DesktopActionAdapter } from '../engine/input/DesktopActionAdapter';
 import { XRActionAdapter } from '../engine/input/XRActionAdapter';
 import { SettingsStore } from '../engine/save/SettingsStore';
+import { AudioDirector } from '../engine/audio/AudioDirector';
 import { DEFAULT_META_PROGRESS, SaveManager, type MetaProgress } from '../engine/save/SaveManager';
 import { PerfHud } from '../engine/debug/PerfHud';
 import { GameStateMachine } from '../game/state/GameStateMachine';
@@ -34,6 +35,7 @@ export class Game {
   private readonly desktopInput: DesktopActionAdapter;
   private readonly xrInput: XRActionAdapter;
   private readonly settings = new SettingsStore();
+  private readonly audioDirector: AudioDirector;
   private readonly saves = new SaveManager();
   private readonly perfHud: PerfHud | null;
   private readonly menu: MenuManager;
@@ -69,6 +71,7 @@ export class Game {
     this.camera.add(this.audioListener);
 
     this.desktopInput = new DesktopActionAdapter(window);
+    this.audioDirector = new AudioDirector(this.audioListener);
     this.xrInput = new XRActionAdapter(this.renderer);
     this.perfHud = DEFAULT_GAME_CONFIG.enableDebugHud ? new PerfHud(container) : null;
     this.menu = new MenuManager(container);
@@ -123,6 +126,7 @@ export class Game {
   private tick(): void {
     this.loop.tick((delta, elapsed) => {
       this.hubScene.tick(elapsed);
+      this.audioDirector.tick(delta);
       this.renderer.render(this.scene, this.camera);
       this.updateDebug(delta);
       const desktopActions = this.desktopInput.snapshot();
@@ -133,6 +137,7 @@ export class Game {
       if (!this.runActive) {
         this.syncHubWorldWidgets();
         this.syncHubWristUi();
+        this.audioDirector.setHubAmbientMix();
         this.hud.render({
           health: 100,
           guard: 100,
@@ -163,6 +168,7 @@ export class Game {
       }
 
       const sandbox = this.combatSandbox.update(desktopActions, delta);
+      this.audioDirector.applyMusicMix(sandbox.musicMix);
       this.vrUi.setStatus('In Expedition');
       const objective = this.xrInput.isPresenting()
         ? `${sandbox.objective} / VR Wrist: ${this.vrUi.getStatus()}`
