@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。加えて `ArenaMutationDirector` を導入し、boss phase の `arenaMutationSummary` を biome 別 device 強度ラベルと定期 pulse callout に変換して HUD/objective に反映します。加えて MainMenu で Continue / New Game の起動分岐、Settings / Credits の専用パネル遷移、Hub/MetaUpgrade の恒久成長プレースホルダ（通貨表示・unlock/craft保存）を導入しました。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 5 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。`ArenaMutationDirector` は boss phase の `arenaMutationSummary` を biome 別 device 強度ラベルと定期 pulse callout に変換して HUD/objective に反映します。MainMenu には Continue / New Game / Mode Select / Settings / Credits を実装し、Mode Select から Campaign / Contracts / Boss Rush / Endless Collapse を選択して run state を切り替えられます。
 
 ## セットアップ
 
@@ -29,7 +29,9 @@ npm run check
 - Hub skeleton (`PilgrimsBelfryScene`) + Hub/MetaUpgrade メニュー導線
 - HUD / Menu の最小 UI（保存済み expedition snapshot を Continue 情報として表示）
 - MainMenu コマンド UI（Continue / New Game / Settings / Credits）と command queue
+- MainMenu の Mode Select（Campaign / Contracts / Boss Rush / Endless Collapse）
 - run 開始の明示分岐（起動直後は MainMenu 待機、選択後に InExpedition へ遷移）
+- run mode に応じた state 遷移（Campaign/Contracts: `InExpedition`、Boss Rush: `BossRush`、Endless: `EndlessCollapse`）
 
 - legacy ritual/glyph/export/codex 実装（`RitualState` / `GlyphSystem` / `DreamExporter` / `Sanctuary` ほか）を `src/` から削除し、新基盤のみを保守対象へ整理
 - New Game 時の slot reset と sandbox 初期化
@@ -71,6 +73,7 @@ npm run check
 - `Shift`: dash
 - `A` / `D`: reward 選択時の左右移動
 - `E`: reward 決定（通常時は loadout rotate）
+- MainMenu の `Mode Select` ボタン: run mode 選択
 
 ## 現在のディレクトリ構成（主要）
 

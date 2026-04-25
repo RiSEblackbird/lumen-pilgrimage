@@ -5,6 +5,7 @@ import { OFFHAND_DEFS } from '../items/OffhandDefs';
 import { SIGIL_DEFS } from '../items/SigilDefs';
 import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
 import { campaignBiomeLabel } from '../state/CampaignBiomes';
+import { RUN_MODE_DEFS, type RunMode } from '../state/RunMode';
 
 export interface ContinueSnapshot {
   readonly biomeId: string;
@@ -58,6 +59,11 @@ export interface SettingsViewModel {
 export type MenuCommand =
   | 'continue'
   | 'new-game'
+  | 'open-mode-select'
+  | 'select-mode-campaign'
+  | 'select-mode-contracts'
+  | 'select-mode-boss-rush'
+  | 'select-mode-endless-collapse'
   | 'enter-hub'
   | 'open-expedition-prep'
   | 'launch-expedition'
@@ -89,6 +95,7 @@ export class MenuManager {
   private settings: SettingsViewModel | null = null;
   private hub: HubViewModel | null = null;
   private prep: ExpeditionPrepViewModel | null = null;
+  private selectedRunMode: RunMode = 'campaign';
   private uiScale = 1;
 
   constructor(container: HTMLElement) {
@@ -127,6 +134,11 @@ export class MenuManager {
 
   setExpeditionPrep(prep: ExpeditionPrepViewModel): void {
     this.prep = prep;
+    this.render();
+  }
+
+  setSelectedRunMode(mode: RunMode): void {
+    this.selectedRunMode = mode;
     this.render();
   }
 
@@ -174,6 +186,12 @@ export class MenuManager {
     if (this.state === 'Credits') {
       this.root.innerHTML = '';
       this.root.append(this.createCreditsPanel());
+      return;
+    }
+
+    if (this.state === 'BossRush' || this.state === 'EndlessCollapse') {
+      this.root.innerHTML = '';
+      this.root.append(this.createModeSelectPanel());
       return;
     }
 
@@ -232,6 +250,7 @@ export class MenuManager {
     }
 
     panel.append(this.createCommandButton('New Game', 'new-game'));
+    panel.append(this.createCommandButton('Mode Select', 'open-mode-select'));
     panel.append(this.createCommandButton('Enter Hub', 'enter-hub'));
     panel.append(this.createCommandButton('Settings', 'open-settings'));
     panel.append(this.createCommandButton('Credits', 'open-credits'));
@@ -245,7 +264,7 @@ export class MenuManager {
     panel.style.minWidth = '300px';
 
     const title = document.createElement('div');
-    title.textContent = 'Pilgrim\'s Belfry (Hub)';
+    title.textContent = "Pilgrim's Belfry (Hub)";
     title.style.fontSize = '16px';
     title.style.fontWeight = '700';
     panel.append(title);
@@ -403,6 +422,30 @@ export class MenuManager {
     panel.append(this.createInfoLabel('Lumen Pilgrimage: Reforge'));
     panel.append(this.createInfoLabel('Core Prototype Team'));
     panel.append(this.createInfoLabel('Design / Engineering / Art / Audio'));
+    panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+    return panel;
+  }
+
+  private createModeSelectPanel(): HTMLElement {
+    const panel = document.createElement('div');
+    panel.style.display = 'grid';
+    panel.style.gap = '8px';
+    panel.style.minWidth = '320px';
+
+    const title = document.createElement('div');
+    title.textContent = 'Mode Select';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '700';
+    panel.append(title);
+
+    const selected = RUN_MODE_DEFS.find((entry) => entry.id === this.selectedRunMode) ?? RUN_MODE_DEFS[0];
+    panel.append(this.createInfoLabel(`Selected: ${selected.label}`));
+    panel.append(this.createInfoLabel(selected.summary));
+
+    panel.append(this.createCommandButton('Campaign', 'select-mode-campaign'));
+    panel.append(this.createCommandButton('Contracts', 'select-mode-contracts'));
+    panel.append(this.createCommandButton('Boss Rush', 'select-mode-boss-rush'));
+    panel.append(this.createCommandButton('Endless Collapse', 'select-mode-endless-collapse'));
     panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
     return panel;
   }
