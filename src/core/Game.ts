@@ -21,6 +21,7 @@ import type { ExpeditionPlan } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
 import { MISSION_TYPE_DEFS } from '../game/encounters/MissionTypes';
 import { DEFAULT_RUN_MODE, type RunMode } from '../game/state/RunMode';
+import { nextDifficultyId } from '../game/state/DifficultyState';
 
 export class Game {
   private static readonly SAVE_SLOT_IDS = [0, 1, 2] as const;
@@ -90,6 +91,7 @@ export class Game {
 
     this.combatSandbox = new CombatSandboxDirector(this.continueSnapshot);
     this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
+    this.combatSandbox.setDifficulty(this.settingsViewModel.difficultyId);
     this.expeditionPrep = this.toExpeditionPrepViewModel(this.combatSandbox.getExpeditionPlan(), this.hubViewModel);
     this.menu.setContinueSnapshot(this.continueSnapshot);
     this.menu.setSettings(this.settingsViewModel);
@@ -376,6 +378,11 @@ export class Game {
       return;
     }
 
+    if (command === 'cycle-difficulty') {
+      this.updateSettings({ difficultyId: nextDifficultyId(this.settingsViewModel.difficultyId) });
+      return;
+    }
+
     if (command === 'back-main-menu' && this.states.canTransition('MainMenu')) {
       this.states.transition('MainMenu');
       this.persistCurrentState();
@@ -403,6 +410,7 @@ export class Game {
       seatedMode: this.settingsViewModel.seatedMode
     });
     this.hubScene.setReduceFlashing(this.settingsViewModel.reduceFlashing);
+    this.combatSandbox.setDifficulty(this.settingsViewModel.difficultyId);
     this.vrUi.applySettings(this.xrInput.getComfortStatus(), this.settingsViewModel.masterVolume);
     this.syncHubWristUi();
   }

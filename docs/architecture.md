@@ -89,3 +89,5 @@
 旧 `RitualState` / `GlyphSystem` / `DreamExporter` / `FlatCodexPanel` / `VrCodexPanel` / `Sanctuary` 系実装は `src/` から削除済み。
 
 ランタイムは `src/main.ts` → `AppBootstrap` → `Game` の単一経路のみを保持し、ritual/glyph 依存をコードベース上から排除した。
+
+- `DifficultyState` は Pilgrim/Trial/Martyr を定義し、CombatSandboxDirector の enemy health/damage/attack interval/telegraph 補正に適用する。

@@ -1,9 +1,12 @@
+import { DEFAULT_DIFFICULTY_ID, isDifficultyId, type DifficultyId } from '../../game/state/DifficultyState';
+
 export interface SettingsData {
   readonly snapTurn: boolean;
   readonly seatedMode: boolean;
   readonly uiScale: number;
   readonly reduceFlashing: boolean;
   readonly masterVolume: number;
+  readonly difficultyId: DifficultyId;
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
@@ -11,11 +14,12 @@ const DEFAULT_SETTINGS: SettingsData = {
   seatedMode: false,
   uiScale: 1,
   reduceFlashing: false,
-  masterVolume: 0.8
+  masterVolume: 0.8,
+  difficultyId: DEFAULT_DIFFICULTY_ID
 };
 
 export class SettingsStore {
-  private readonly key = 'lumen-pilgrimage:settings:v2';
+  private readonly key = 'lumen-pilgrimage:settings:v3';
 
   load(): SettingsData {
     const raw = localStorage.getItem(this.key);
@@ -24,8 +28,11 @@ export class SettingsStore {
     }
 
     try {
-      const parsed = JSON.parse(raw) as Partial<SettingsData>;
-      return { ...DEFAULT_SETTINGS, ...parsed };
+      const parsed = JSON.parse(raw) as Partial<SettingsData> & { difficultyId?: string };
+      const difficultyId = parsed.difficultyId && isDifficultyId(parsed.difficultyId)
+        ? parsed.difficultyId
+        : DEFAULT_DIFFICULTY_ID;
+      return { ...DEFAULT_SETTINGS, ...parsed, difficultyId };
     } catch {
       return DEFAULT_SETTINGS;
     }

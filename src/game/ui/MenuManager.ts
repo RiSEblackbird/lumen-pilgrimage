@@ -6,6 +6,7 @@ import { SIGIL_DEFS } from '../items/SigilDefs';
 import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
 import { campaignBiomeLabel } from '../state/CampaignBiomes';
 import { RUN_MODE_DEFS, type RunMode } from '../state/RunMode';
+import { resolveDifficulty, type DifficultyId } from '../state/DifficultyState';
 
 export interface ContinueSnapshot {
   readonly biomeId: string;
@@ -54,6 +55,7 @@ export interface SettingsViewModel {
   readonly uiScale: number;
   readonly reduceFlashing: boolean;
   readonly masterVolume: number;
+  readonly difficultyId: DifficultyId;
 }
 
 export interface SaveSlotSummary {
@@ -89,6 +91,7 @@ export type MenuCommand =
   | 'ui-scale-up'
   | 'master-volume-down'
   | 'master-volume-up'
+  | 'cycle-difficulty'
   | 'prep-cycle-biome'
   | 'prep-cycle-mission'
   | 'prep-cycle-weapon'
@@ -441,6 +444,11 @@ export class MenuManager {
     scaleRow.append(this.createCommandButton('Scale +', 'ui-scale-up'));
     panel.append(scaleRow);
     panel.append(this.createInfoLabel(`Master Volume: ${Math.round(settings.masterVolume * 100)}%`));
+
+    const difficulty = resolveDifficulty(settings.difficultyId);
+    panel.append(this.createInfoLabel(`Difficulty: ${difficulty.label}`));
+    panel.append(this.createInfoLabel(difficulty.summary));
+    panel.append(this.createCommandButton('Cycle Difficulty', 'cycle-difficulty'));
 
     const volumeRow = document.createElement('div');
     volumeRow.style.display = 'grid';
