@@ -84,7 +84,7 @@
 - `CombatSandboxDirector` を `PlayerCombat` / `DamageSystem` / `GuardSystem` / `EncounterDirector` に分割し、本番戦闘へ移行。
 - `ActionMap` を起点に、weapon-alt/lock-on/active-sigil の個別入力を Desktop/XR 双方へ等価拡張。
 - `EncounterDirector` の route 選択を mission type / contract modifier と接続し、探索導線の性格を調整。
-- `RewardDirector` を biome ごとの loot table と rarity 重みへ接続して drop 品質を調整。
+- `RewardDirector` は `LootTables` を参照し、biome/route/rewardWeight から tier を決定して候補 relic を抽選。
 - `PilgrimsBelfryScene` を Hub 機能（craft, codex, mode select）へ分解。
 
 ## レガシー撤去状況

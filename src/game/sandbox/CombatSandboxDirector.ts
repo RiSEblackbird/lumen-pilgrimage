@@ -640,7 +640,12 @@ export class CombatSandboxDirector {
 
     const relicModifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
     this.focus = Math.min(MAX_FOCUS, this.focus + relicModifiers.roomClearFocusBonus);
-    this.pendingReward = this.rewards.rollChoices(3);
+    this.pendingReward = this.rewards.rollChoices(3, {
+      biomeId: encounter.biomeId,
+      routeStyle: encounter.routeStyle,
+      rewardWeight: encounter.rewardWeight,
+      roomTags: encounter.roomTags
+    });
     this.rewardLabel = `${encounter.biomeName} / ${encounter.progressLabel} / reward x${encounter.rewardWeight.toFixed(2)}`;
     this.encounterLabel = `${encounter.progressLabel} (${encounter.roomTags.join(', ')})`;
     this.objective = 'Wave cleared. Reward altar is active.';

@@ -24,7 +24,8 @@
     "phase5-hub-biome-boss-foundation",
     "phase5-music-director-foundation",
     "phase5-hub-terminal-context-widgets",
-    "phase5-music-runtime-bus-wiring"
+    "phase5-music-runtime-bus-wiring",
+    "phase5-loot-table-validation"
   ],
   "in_progress": [
     "phase5-campaign-content-scaleout"
