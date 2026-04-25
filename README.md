@@ -48,6 +48,7 @@ npm run preview
 - state machine（Boot〜EndlessCollapse）
 - state model 分離（`CampaignState` / `ExpeditionState` / `MetaProgressionState`）で campaign objective・run 進行・loadout pool 表示責務を整理
 - `SaveManager.updateState` により menu/hub/run 遷移時の save slot `state` を永続化
+- continue snapshot に `runSeed` を保存し、EncounterDirector の room 分岐を deterministic seed で再現可能化
 - Desktop/XR 入力抽象（ActionMap）
 - `SaveManager` / `SettingsStore`（slot0 の初期化 + expedition 進行スナップショット自動保存 + meta progression 永続化）
 - `PerfHud`（簡易 FPS 監視）

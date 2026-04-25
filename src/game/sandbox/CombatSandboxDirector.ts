@@ -40,6 +40,7 @@ export interface ExpeditionPlan {
 }
 
 export interface CombatPersistenceSnapshot {
+  readonly runSeed: number;
   readonly biomeId: string;
   readonly missionId: string;
   readonly sectorIndex: number;
@@ -364,7 +365,8 @@ export class CombatSandboxDirector {
       biomeId: snapshot.biomeId,
       sectorIndex: snapshot.sectorIndex,
       roomId: snapshot.roomId,
-      routeStyle: this.resolveRouteStyle(snapshot.routeStyle)
+      routeStyle: this.resolveRouteStyle(snapshot.routeStyle),
+      runSeed: snapshot.runSeed
     });
     this.latestEncounter = this.encounter.snapshot();
     this.syncPlanFromRuntimeSelection();
@@ -917,6 +919,7 @@ export class CombatSandboxDirector {
     const relicModifiers = relicIds.length > 0 ? buildRelicStatModifiers(relicIds) : DEFAULT_RELIC_MODIFIERS;
 
     return {
+      runSeed: this.latestEncounter.runSeed,
       biomeId: this.latestEncounter.biomeId,
       missionId: MISSION_TYPE_DEFS[this.missionIndex].id,
       sectorIndex: this.latestEncounter.sectorIndex,

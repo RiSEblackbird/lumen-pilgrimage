@@ -186,6 +186,7 @@ export class Game {
         const snapshot = this.combatSandbox.getPersistenceSnapshot();
         this.expeditionState.syncFromPersistence(snapshot);
         const updated = this.saves.updateExpedition(this.activeSlotId, {
+          runSeed: snapshot.runSeed,
           biomeId: snapshot.biomeId,
           missionId: snapshot.missionId,
           sectorIndex: snapshot.sectorIndex,

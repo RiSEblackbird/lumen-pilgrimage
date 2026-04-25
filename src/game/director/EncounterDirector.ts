@@ -5,6 +5,7 @@ import {
   type RouteStyle,
   type RoomTag
 } from '../encounters/EncounterRuleSet';
+import { DeterministicRng, createRunSeed } from '../../core/DeterministicRng';
 
 export interface EncounterSnapshot {
   readonly biomeId: string;
@@ -17,6 +18,7 @@ export interface EncounterSnapshot {
   readonly progressLabel: string;
   readonly rewardWeight: number;
   readonly routeStyle: RouteStyle;
+  readonly runSeed: number;
 }
 
 export class EncounterDirector {
@@ -27,8 +29,10 @@ export class EncounterDirector {
   private currentRoomId = this.biome.startRoomId;
   private routeStyle: RouteStyle = 'standard';
   private missionRouteBias: readonly RouteStyle[] = [];
+  private runSeed = createRunSeed();
+  private rng = new DeterministicRng(this.runSeed);
 
-  startExpedition(biomeId: string, missionRouteBias: readonly RouteStyle[] = []): void {
+  startExpedition(biomeId: string, missionRouteBias: readonly RouteStyle[] = [], runSeed = createRunSeed()): void {
     this.biome = BIOME_ENCOUNTER_SETS.find((set) => set.biomeId === biomeId) ?? BIOME_ENCOUNTER_SETS[0];
     this.sectorIndex = 1;
     this.roomsClearedInSector = 0;
@@ -36,6 +40,8 @@ export class EncounterDirector {
     this.currentRoomId = this.biome.startRoomId;
     this.routeStyle = 'standard';
     this.missionRouteBias = missionRouteBias;
+    this.runSeed = runSeed >>> 0 || 1;
+    this.rng = new DeterministicRng(this.runSeed);
   }
 
   setMissionRouteBias(routeBias: readonly RouteStyle[]): void {
@@ -47,6 +53,7 @@ export class EncounterDirector {
     readonly sectorIndex: number;
     readonly roomId: string;
     readonly routeStyle: RouteStyle;
+    readonly runSeed?: number;
   }): void {
     this.biome = BIOME_ENCOUNTER_SETS.find((set) => set.biomeId === snapshot.biomeId) ?? BIOME_ENCOUNTER_SETS[0];
     this.sectorIndex = Math.min(this.biome.sectors, Math.max(1, Math.floor(snapshot.sectorIndex)));
@@ -55,6 +62,8 @@ export class EncounterDirector {
     const roomExists = this.biome.rooms.some((room) => room.id === snapshot.roomId);
     this.currentRoomId = roomExists ? snapshot.roomId : this.biome.startRoomId;
     this.routeStyle = snapshot.routeStyle;
+    this.runSeed = snapshot.runSeed && snapshot.runSeed > 0 ? snapshot.runSeed >>> 0 : createRunSeed();
+    this.rng = new DeterministicRng(this.runSeed);
   }
 
   onRoomCleared(clearTimeSeconds: number, tookHeavyDamage: boolean): EncounterSnapshot {
@@ -86,7 +95,8 @@ export class EncounterDirector {
       roomTags: room.tags,
       progressLabel: `Sector ${this.sectorIndex}/${this.biome.sectors} · ${room.displayName} [${this.routeStyle}]`,
       rewardWeight,
-      routeStyle: this.routeStyle
+      routeStyle: this.routeStyle,
+      runSeed: this.runSeed
     };
   }
 
@@ -150,12 +160,7 @@ export class EncounterDirector {
   }
 
   private pickIndex(length: number): number {
-    if (length <= 1) {
-      return 0;
-    }
-
-    const seed = this.totalRoomsCleared + this.sectorIndex + this.currentRoomId.length;
-    return seed % length;
+    return this.rng.nextInt(length);
   }
 
   private currentRoom(): EncounterRoomRule {
