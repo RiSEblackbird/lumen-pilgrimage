@@ -30,7 +30,12 @@ export const REGULAR_ENEMIES: readonly EnemyCatalogEntry[] = [
   { id: 'artery-hound', displayName: 'Artery Hound', role: 'fast-flanker', biomeIds: ['obsidian-artery'] },
   { id: 'mirror-deacon', displayName: 'Mirror Deacon', role: 'sniper', biomeIds: ['obsidian-artery'] },
   { id: 'halo-drone', displayName: 'Halo Drone', role: 'airborne-harassment', biomeIds: ['dawn-foundry', 'broken-sun-choir'] },
-  { id: 'echo-sentinel', displayName: 'Echo Sentinel', role: 'turret-anchor', biomeIds: ['ember-ossuary', 'moon-reservoir', 'birch-astrarium', 'obsidian-artery', 'dawn-foundry', 'broken-sun-choir'] },
+  {
+    id: 'echo-sentinel',
+    displayName: 'Echo Sentinel',
+    role: 'turret-anchor',
+    biomeIds: ['ember-ossuary', 'moon-reservoir', 'birch-astrarium', 'obsidian-artery', 'dawn-foundry', 'broken-sun-choir']
+  }
 ] as const;
 
 export const ELITE_ENEMIES: readonly EnemyCatalogEntry[] = [
@@ -40,7 +45,12 @@ export const ELITE_ENEMIES: readonly EnemyCatalogEntry[] = [
   { id: 'cantor-shade', displayName: 'Cantor Shade', role: 'summoner', biomeIds: ['broken-sun-choir'] },
   { id: 'broken-choir-lancer', displayName: 'Broken Choir Lancer', role: 'grabber', biomeIds: ['broken-sun-choir'] },
   { id: 'sun-shard-seraph', displayName: 'Sun Shard Seraph', role: 'airborne-harassment', biomeIds: ['broken-sun-choir'] },
-  { id: 'warden-vassal', displayName: 'Warden Vassal', role: 'shield-bearer', biomeIds: ['ember-ossuary', 'moon-reservoir', 'birch-astrarium', 'obsidian-artery', 'dawn-foundry', 'broken-sun-choir'] },
+  {
+    id: 'warden-vassal',
+    displayName: 'Warden Vassal',
+    role: 'shield-bearer',
+    biomeIds: ['ember-ossuary', 'moon-reservoir', 'birch-astrarium', 'obsidian-artery', 'dawn-foundry', 'broken-sun-choir']
+  }
 ] as const;
 
 export const MINI_BOSSES: readonly EnemyCatalogEntry[] = [
@@ -57,5 +67,29 @@ export const BOSS_ENEMIES: readonly EnemyCatalogEntry[] = [
   { id: 'oracle-of-bark-and-polaris', displayName: 'Oracle of Bark and Polaris', role: 'support-buffer', biomeIds: ['birch-astrarium'] },
   { id: 'warden-of-split-reflection', displayName: 'The Warden of Split Reflection', role: 'shield-bearer', biomeIds: ['obsidian-artery'] },
   { id: 'daybreak-engine', displayName: 'Daybreak Engine', role: 'turret-anchor', biomeIds: ['dawn-foundry'] },
-  { id: 'last-cantor-broken-sun-choir', displayName: 'The Last Cantor / Broken Sun Choir', role: 'grabber', biomeIds: ['broken-sun-choir'] }
+  {
+    id: 'last-cantor-broken-sun-choir',
+    displayName: 'The Last Cantor / Broken Sun Choir',
+    role: 'grabber',
+    biomeIds: ['broken-sun-choir']
+  }
 ] as const;
+
+export const ALL_ENEMY_CATALOG_ENTRIES: readonly EnemyCatalogEntry[] = [
+  ...REGULAR_ENEMIES,
+  ...ELITE_ENEMIES,
+  ...MINI_BOSSES,
+  ...BOSS_ENEMIES
+] as const;
+
+const ENEMY_CATALOG_BY_ID: ReadonlyMap<string, EnemyCatalogEntry> = new Map(
+  ALL_ENEMY_CATALOG_ENTRIES.map((entry) => [entry.id, entry] as const)
+);
+
+export function getEnemyCatalogEntry(id: string): EnemyCatalogEntry | null {
+  return ENEMY_CATALOG_BY_ID.get(id) ?? null;
+}
+
+export function getEnemyDisplayName(id: string, fallback = id): string {
+  return getEnemyCatalogEntry(id)?.displayName ?? fallback;
+}

@@ -89,6 +89,11 @@ function readStringLiteral(node, label) {
   return node.text;
 }
 
+function readStringArrayLiteral(node, label) {
+  const arrayNode = asArrayLiteral(node, label);
+  return arrayNode.elements.map((element, index) => readStringLiteral(element, `${label}[${index}]`));
+}
+
 function extractIdsFromConstArray(relativePath, constName, key) {
   const { sourceFile } = parseTs(relativePath);
   const initializer = findConstInitializer(sourceFile, constName);
@@ -98,6 +103,40 @@ function extractIdsFromConstArray(relativePath, constName, key) {
     const objectNode = asObjectLiteral(element, `${constName}[${index}]`);
     const idNode = getObjectProperty(objectNode, key, `${constName}[${index}]`);
     return readStringLiteral(idNode, `${constName}[${index}].${key}`);
+  });
+}
+
+function extractPairsFromConstArray(relativePath, constName, keys) {
+  const { sourceFile } = parseTs(relativePath);
+  const initializer = findConstInitializer(sourceFile, constName);
+  const arrayNode = asArrayLiteral(initializer, constName);
+
+  return arrayNode.elements.map((element, index) => {
+    const objectNode = asObjectLiteral(element, `${constName}[${index}]`);
+    const record = {};
+
+    for (const key of keys) {
+      const valueNode = getObjectProperty(objectNode, key, `${constName}[${index}]`);
+      record[key] = readStringLiteral(valueNode, `${constName}[${index}].${key}`);
+    }
+
+    return record;
+  });
+}
+
+function extractEnemyBiomePairs(relativePath, constName) {
+  const { sourceFile } = parseTs(relativePath);
+  const initializer = findConstInitializer(sourceFile, constName);
+  const arrayNode = asArrayLiteral(initializer, constName);
+
+  return arrayNode.elements.map((element, index) => {
+    const objectNode = asObjectLiteral(element, `${constName}[${index}]`);
+    const id = readStringLiteral(getObjectProperty(objectNode, 'id', `${constName}[${index}]`), `${constName}[${index}].id`);
+    const biomeIds = readStringArrayLiteral(
+      getObjectProperty(objectNode, 'biomeIds', `${constName}[${index}]`),
+      `${constName}[${index}].biomeIds`
+    );
+    return { id, biomeIds };
   });
 }
 
@@ -294,12 +333,14 @@ function run() {
   const relicIds = extractIdsFromConstArray('src/game/items/RelicDefs.ts', 'RELIC_DEFS', 'id');
   const lootTables = parseLootTables('src/game/items/LootTables.ts');
   const missionIds = extractIdsFromConstArray('src/game/encounters/MissionTypes.ts', 'MISSION_TYPE_DEFS', 'id');
-  const bossContractBiomeIds = extractIdsFromConstArray('src/game/encounters/BossContracts.ts', 'BOSS_CONTRACTS', 'biomeId');
+  const bossContracts = extractPairsFromConstArray('src/game/encounters/BossContracts.ts', 'BOSS_CONTRACTS', ['biomeId', 'bossEnemyId']);
+  const bossContractBiomeIds = bossContracts.map((contract) => contract.biomeId);
   const campaignBiomeIds = extractIdsFromConstArray('src/game/state/CampaignBiomes.ts', 'CAMPAIGN_BIOME_ORDER', 'id');
   const regularEnemyIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'REGULAR_ENEMIES', 'id');
   const eliteEnemyIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'ELITE_ENEMIES', 'id');
   const miniBossIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'MINI_BOSSES', 'id');
   const bossEnemyIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'BOSS_ENEMIES', 'id');
+  const bossEnemyBiomePairs = extractEnemyBiomePairs('src/content/enemies/EnemyCatalog.ts', 'BOSS_ENEMIES');
 
   assertMinimumCount({ name: 'weapons', actual: weaponIds.length, expected: 4 });
   assertMinimumCount({ name: 'offhands', actual: offhandIds.length, expected: 4 });
@@ -337,6 +378,24 @@ function run() {
     throw new Error(`[content validation] EncounterSpawnTables has unknown archetype ids: ${unknownArchetypes.join(', ')}`);
   }
   console.log(`✓ encounter archetypes: all ${encounterArchetypeIds.length} ids resolve in EnemyCatalog`);
+
+  const unknownBossEnemyIds = bossContracts
+    .map((contract) => contract.bossEnemyId)
+    .filter((enemyId) => !bossEnemyIds.includes(enemyId));
+  if (unknownBossEnemyIds.length > 0) {
+    throw new Error(`[content validation] BossContracts has unknown bossEnemyId values: ${[...new Set(unknownBossEnemyIds)].join(', ')}`);
+  }
+
+  const bossEnemyBiomeMap = new Map(bossEnemyBiomePairs.map((entry) => [entry.id, entry.biomeIds]));
+  for (const contract of bossContracts) {
+    const supportedBiomes = bossEnemyBiomeMap.get(contract.bossEnemyId) ?? [];
+    if (!supportedBiomes.includes(contract.biomeId)) {
+      throw new Error(
+        `[content validation] Boss contract biome mismatch: ${contract.bossEnemyId} not registered for biome ${contract.biomeId}`
+      );
+    }
+  }
+  console.log(`✓ boss contracts: ${bossContracts.length} contracts map to boss catalog biome assignments`);
 
   const biomeSeeds = parseBiomeRoomSeeds('src/game/encounters/EncounterRuleSet.ts');
   for (const biomeSeed of biomeSeeds) {
