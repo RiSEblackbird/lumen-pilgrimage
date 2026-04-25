@@ -14,6 +14,7 @@ npm run dev
 ```bash
 npm run typecheck
 npm run build
+npm run validate:content
 npm run check
 ```
 
@@ -67,6 +68,16 @@ npm run check
   - HUD に boss HP readout と boss 専用 telegraph を表示
   - `Ash Sight`（Focus 消費 + cooldown）を tactical reveal として追加し、telegraph/route 読解を補助
   - difficulty layer（Pilgrim / Trial / Martyr）を追加し、敵HP/被ダメージ圧/telegraph 速度を mode 横断で調整
+
+
+## コンテンツ検証ゲート
+
+`npm run validate:content` は次を静的に検証します。
+
+- コンテンツ最低数（biome / mission / weapon / offhand / sigil / relic / boss contract）
+- `src/` 配下に `dev` / `placeholder` 文言が残っていないこと（`src/engine/debug/PerfHud.ts` は許可）
+
+リリース前は `npm run check`（typecheck + build + content validation）を実行してください。
 
 ## サンドボックス操作（flat-screen）
 
