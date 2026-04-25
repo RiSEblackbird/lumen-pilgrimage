@@ -5,7 +5,7 @@ import { BossActorDirector } from '../director/BossActorDirector';
 import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
 import { RewardDirector, type RewardChoiceState } from '../director/RewardDirector';
-import { ArenaMutationDirector } from '../director/ArenaMutationDirector';
+import { ArenaMutationDirector, type ArenaDeviceVisualHooks } from '../director/ArenaMutationDirector';
 import { BossArenaAudioDirector } from '../director/BossArenaAudioDirector';
 import {
   getBossContractForBiome,
@@ -94,6 +94,8 @@ export interface CombatSandboxSnapshot {
   readonly bossHealthLabel: string;
   readonly arenaMutationLabel: string;
   readonly arenaEffectsLabel: string;
+  readonly arenaVisualHooks: ArenaDeviceVisualHooks;
+  readonly arenaVisualLabel: string;
   readonly loadoutPoolLabel: string;
   readonly ashSightLabel: string;
   readonly musicLabel: string;
@@ -153,6 +155,14 @@ export class CombatSandboxDirector {
   private bossHealthLabel = 'Boss HP: -';
   private arenaMutationLabel = 'Arena stable';
   private arenaEffectsLabel = 'Arena effects idle';
+  private arenaVisualHooks: ArenaDeviceVisualHooks = {
+    biomeId: 'default',
+    phaseTitle: 'No phase',
+    channels: { hazard: 0, focus: 0, guard: 0, overburn: 0 },
+    dominantDeviceLabel: 'No arena devices active',
+    visualSummary: 'Arena Visuals H0 F0 G0 O0 · No arena devices active'
+  };
+  private arenaVisualLabel = 'Arena Visuals H0 F0 G0 O0 · No arena devices active';
   private arenaAudioLabel = 'Audio reactive bus idle';
   private musicSnapshot: MusicMixSnapshot = {
     biomeId: 'default',
@@ -265,6 +275,14 @@ export class CombatSandboxDirector {
     this.bossHealthLabel = 'Boss HP: -';
     this.arenaMutationLabel = 'Arena stable';
     this.arenaEffectsLabel = 'Arena effects idle';
+    this.arenaVisualHooks = {
+      biomeId: this.expeditionPlan.biomeId,
+      phaseTitle: 'No phase',
+      channels: { hazard: 0, focus: 0, guard: 0, overburn: 0 },
+      dominantDeviceLabel: 'No arena devices active',
+      visualSummary: 'Arena Visuals H0 F0 G0 O0 · No arena devices active'
+    };
+    this.arenaVisualLabel = this.arenaVisualHooks.visualSummary;
     this.arenaAudioLabel = 'Audio reactive bus idle';
     this.musicSnapshot = {
       biomeId: this.expeditionPlan.biomeId,
@@ -338,6 +356,8 @@ export class CombatSandboxDirector {
       bossHealthLabel: this.bossHealthLabel,
       arenaMutationLabel: `${this.arenaMutationLabel} / ${this.arenaAudioLabel}`,
       arenaEffectsLabel: this.arenaEffectsLabel,
+      arenaVisualHooks: this.arenaVisualHooks,
+      arenaVisualLabel: this.arenaVisualLabel,
       loadoutPoolLabel: this.loadoutPoolLabel,
       ashSightLabel: this.getAshSightLabel(),
       musicLabel: this.musicLabel,
@@ -766,6 +786,14 @@ export class CombatSandboxDirector {
       this.bossHealthLabel = 'Boss HP: -';
       this.arenaMutationLabel = 'Arena stable';
       this.arenaEffectsLabel = 'Arena effects idle';
+      this.arenaVisualHooks = {
+        biomeId: this.latestEncounter.biomeId,
+        phaseTitle: 'No phase',
+        channels: { hazard: 0, focus: 0, guard: 0, overburn: 0 },
+        dominantDeviceLabel: 'No arena devices active',
+        visualSummary: 'Arena Visuals H0 F0 G0 O0 · No arena devices active'
+      };
+      this.arenaVisualLabel = this.arenaVisualHooks.visualSummary;
       this.arenaAudioLabel = 'Audio reactive bus idle';
       this.bossPhase = 0;
       this.hazardTickAccumulator = 0;
@@ -784,6 +812,14 @@ export class CombatSandboxDirector {
       this.bossHealthLabel = 'Boss HP: unknown';
       this.arenaMutationLabel = 'Arena mutation unknown';
       this.arenaEffectsLabel = 'Arena effects uncertain';
+      this.arenaVisualHooks = {
+        biomeId: this.latestEncounter.biomeId,
+        phaseTitle: 'Unknown phase',
+        channels: { hazard: 0.25, focus: 0.25, guard: 0.25, overburn: 0.25 },
+        dominantDeviceLabel: 'Unknown arena device',
+        visualSummary: 'Arena Visuals H25 F25 G25 O25 · Unknown arena device'
+      };
+      this.arenaVisualLabel = this.arenaVisualHooks.visualSummary;
       this.arenaAudioLabel = 'Audio reactive bus uncertain';
       this.objective = 'Warden trace detected. Continue pressure to extract phase data.';
       return;
@@ -796,6 +832,8 @@ export class CombatSandboxDirector {
     this.bossHealthLabel = `Boss HP: ${bossSnapshot.maxHealth > 0 ? ((bossSnapshot.currentHealth / bossSnapshot.maxHealth) * 100).toFixed(0) : '0'}%`;
     const arenaSnapshot = this.arenaMutation.snapshot();
     const effectSnapshot = this.arenaMutation.effectSnapshot();
+    this.arenaVisualHooks = this.arenaMutation.visualHooksSnapshot();
+    this.arenaVisualLabel = this.arenaVisualHooks.visualSummary;
     this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel}`;
     this.arenaEffectsLabel = effectSnapshot.summary;
     this.arenaAudioLabel = this.arenaAudio.snapshot().mixLabel;
@@ -818,6 +856,8 @@ export class CombatSandboxDirector {
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${resolvedPhase.index}/${this.bossContract.phases.length} (${resolvedPhase.title})`;
     const arenaSnapshot = this.arenaMutation.snapshot();
     const effectSnapshot = this.arenaMutation.effectSnapshot();
+    this.arenaVisualHooks = this.arenaMutation.visualHooksSnapshot();
+    this.arenaVisualLabel = this.arenaVisualHooks.visualSummary;
     this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel} / ${this.arenaAudio.snapshot().pulseCallout}`;
     this.arenaEffectsLabel = effectSnapshot.summary;
     this.arenaAudioLabel = this.arenaAudio.snapshot().mixLabel;

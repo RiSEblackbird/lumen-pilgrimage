@@ -24,6 +24,15 @@ import { MISSION_TYPE_DEFS } from '../game/encounters/MissionTypes';
 import { SessionBootstrap } from '../bootstrap/SessionBootstrap';
 import { DEFAULT_RUN_MODE, type RunMode } from '../game/state/RunMode';
 import { nextDifficultyId } from '../game/state/DifficultyState';
+import type { ArenaDeviceVisualHooks } from '../game/director/ArenaMutationDirector';
+
+const IDLE_ARENA_VISUAL_HOOKS: ArenaDeviceVisualHooks = {
+  biomeId: 'default',
+  phaseTitle: 'No phase',
+  channels: { hazard: 0, focus: 0, guard: 0, overburn: 0 },
+  dominantDeviceLabel: 'No arena devices active',
+  visualSummary: 'Arena Visuals H0 F0 G0 O0 · No arena devices active'
+};
 
 export class Game {
   private static readonly SAVE_SLOT_IDS = [0, 1, 2] as const;
@@ -144,6 +153,7 @@ export class Game {
       this.handleMenuCommands();
 
       if (!this.runActive) {
+        this.hubScene.setArenaVisualHooks(IDLE_ARENA_VISUAL_HOOKS);
         this.syncHubWorldWidgets();
         this.syncHubWristUi();
         this.vrUi.setStatus(this.xrInput.getSessionStatusLabel());
@@ -170,6 +180,7 @@ export class Game {
           bossHealthLabel: 'Boss HP: -',
           arenaMutationLabel: 'Arena stable',
           arenaEffectsLabel: 'Arena effects idle',
+          arenaVisualLabel: IDLE_ARENA_VISUAL_HOOKS.visualSummary,
           loadoutPoolLabel: this.metaState.toLoadoutPoolLabel(),
           ashSightLabel: 'Ash Sight READY (Cost 20 Focus, CD 12s)',
           musicLabel: 'Music Mix E100 T0 C0 K0 B0 · hub sanctuary ambience',
@@ -180,6 +191,7 @@ export class Game {
       }
 
       const sandbox = this.combatSandbox.update(desktopActions, delta);
+      this.hubScene.setArenaVisualHooks(sandbox.arenaVisualHooks);
       this.audioDirector.applyMusicMix(sandbox.musicMix);
       this.vrUi.setStatus(`In Expedition · ${this.xrInput.getSessionStatusLabel()}`);
       const objective = this.xrInput.isPresenting()

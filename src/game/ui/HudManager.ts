@@ -20,6 +20,7 @@ export interface HudSnapshot {
   readonly bossHealthLabel: string;
   readonly arenaMutationLabel: string;
   readonly arenaEffectsLabel: string;
+  readonly arenaVisualLabel: string;
   readonly loadoutPoolLabel: string;
   readonly ashSightLabel: string;
   readonly musicLabel: string;
@@ -69,6 +70,7 @@ export class HudManager {
       snapshot.bossHealthLabel,
       `Arena: ${snapshot.arenaMutationLabel}`,
       `Arena Effects: ${snapshot.arenaEffectsLabel}`,
+      snapshot.arenaVisualLabel,
       snapshot.loadoutPoolLabel,
       snapshot.ashSightLabel,
       snapshot.musicLabel,

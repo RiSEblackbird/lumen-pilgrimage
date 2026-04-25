@@ -13,6 +13,7 @@ import {
 } from 'three';
 import { HubTerminalDirector, type HubTerminalAction, type HubTerminalId, type HubTerminalWidgetState } from './HubTerminalDirector';
 import type { XRPointerRay } from '../../engine/input/XRActionAdapter';
+import type { ArenaDeviceVisualHooks } from '../../game/director/ArenaMutationDirector';
 
 interface TerminalWidgetMeshes {
   readonly stem: Mesh;
@@ -31,6 +32,13 @@ export class PilgrimsBelfryScene {
   private readonly terminalWidgets = new Map<HubTerminalId, TerminalWidgetMeshes>();
   private readonly pointerRaycaster = new Raycaster();
   private reduceFlashing = false;
+  private arenaVisualHooks: ArenaDeviceVisualHooks = {
+    biomeId: 'default',
+    phaseTitle: 'No phase',
+    channels: { hazard: 0, focus: 0, guard: 0, overburn: 0 },
+    dominantDeviceLabel: 'No arena devices active',
+    visualSummary: 'Arena Visuals H0 F0 G0 O0 · No arena devices active'
+  };
 
   constructor(private readonly scene: Scene) {
     this.scene.background = new Color(0x06080f);
@@ -67,6 +75,8 @@ export class PilgrimsBelfryScene {
   tick(elapsedSeconds: number): void {
     const speed = this.reduceFlashing ? 0.12 : 0.25;
     this.arena.rotation.y = elapsedSeconds * speed;
+
+    this.applyArenaVisualHookPulse(elapsedSeconds);
 
     const pulseScale = this.reduceFlashing ? 0.06 : 0.14;
     this.terminalRing.scale.setScalar(1 + Math.sin(elapsedSeconds * 3.2) * pulseScale);
@@ -184,6 +194,10 @@ export class PilgrimsBelfryScene {
 
   setReduceFlashing(enabled: boolean): void {
     this.reduceFlashing = enabled;
+  }
+
+  setArenaVisualHooks(hooks: ArenaDeviceVisualHooks): void {
+    this.arenaVisualHooks = hooks;
   }
 
   private createTerminalPedestals(): Mesh[] {
@@ -344,6 +358,27 @@ export class PilgrimsBelfryScene {
   private getTerminalRingAnchor(): Vector3 {
     const selectedTerminal = this.terminalMeshes[this.terminalDirector.getSelectedIndex()];
     return new Vector3(selectedTerminal.position.x, 0.86, selectedTerminal.position.z);
+  }
+
+  private applyArenaVisualHookPulse(elapsedSeconds: number): void {
+    const arenaMaterial = this.arena.material;
+    if (!(arenaMaterial instanceof MeshStandardMaterial)) {
+      return;
+    }
+
+    const channels = this.arenaVisualHooks.channels;
+    const base = new Color(0x394255);
+    const hazard = new Color(0xc76c44).multiplyScalar(channels.hazard);
+    const focus = new Color(0x5a98dd).multiplyScalar(channels.focus);
+    const guard = new Color(0x8f7bd4).multiplyScalar(channels.guard);
+    const overburn = new Color(0xd8a232).multiplyScalar(channels.overburn);
+    const mixed = base.clone().add(hazard).add(focus).add(guard).add(overburn);
+    arenaMaterial.color.copy(mixed);
+    arenaMaterial.emissive.copy(mixed.clone().multiplyScalar(0.45));
+    const pulseBase = this.reduceFlashing ? 0.08 : 0.18;
+    const pulseAmp = this.reduceFlashing ? 0.06 : 0.14;
+    const pressure = Math.max(channels.hazard, channels.focus, channels.guard, channels.overburn);
+    arenaMaterial.emissiveIntensity = pulseBase + pressure * 0.28 + Math.sin(elapsedSeconds * 3.4) * pulseAmp * pressure;
   }
 
   private resolveMeterColor(intensity: number, highlighted: boolean): Color {
