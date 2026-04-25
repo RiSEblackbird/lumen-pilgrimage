@@ -161,7 +161,8 @@ export class Game {
           arenaMutationLabel: 'Arena stable',
           loadoutPoolLabel: this.metaState.toLoadoutPoolLabel(),
           ashSightLabel: 'Ash Sight READY (Cost 20 Focus, CD 12s)',
-          musicLabel: 'Music Mix E100 T0 C0 K0 B0 · hub sanctuary ambience'
+          musicLabel: 'Music Mix E100 T0 C0 K0 B0 · hub sanctuary ambience',
+          runSummaryLabel: 'Run 0:00 · K 0 · DMG 0/0 · Parry 0 · Dash 0 · AshSight 0 · Relic 0 · Intensity LOW'
         });
         this.menu.setState(this.states.current);
         return;

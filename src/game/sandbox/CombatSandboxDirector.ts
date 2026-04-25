@@ -1,5 +1,6 @@
 import type { ActionState } from '../../engine/input/ActionMap';
 import { MusicDirector, type MusicMixSnapshot } from '../../engine/audio/MusicDirector';
+import { RunSummaryBuilder } from '../../engine/save/RunSummaryBuilder';
 import { BossActorDirector } from '../director/BossActorDirector';
 import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
@@ -22,6 +23,7 @@ import { SIGIL_DEFS } from '../items/SigilDefs';
 import { WEAPON_DEFS } from '../items/WeaponDefs';
 import type { RunMode } from '../state/RunMode';
 import { resolveDifficulty, type DifficultyId } from '../state/DifficultyState';
+import { StatsTracker } from '../state/StatsTracker';
 import type { ContinueSnapshot } from '../ui/MenuManager';
 
 export interface LoadoutAvailability {
@@ -94,6 +96,7 @@ export interface CombatSandboxSnapshot {
   readonly loadoutPoolLabel: string;
   readonly ashSightLabel: string;
   readonly musicLabel: string;
+  readonly runSummaryLabel: string;
   readonly musicMix: MusicMixSnapshot;
 }
 
@@ -114,6 +117,8 @@ export class CombatSandboxDirector {
   private readonly arenaMutation = new ArenaMutationDirector();
   private readonly arenaAudio = new BossArenaAudioDirector();
   private readonly musicDirector = new MusicDirector();
+  private readonly statsTracker = new StatsTracker();
+  private readonly runSummaryBuilder = new RunSummaryBuilder();
   private latestEncounter = this.encounter.snapshot();
 
   private enemySerial = 0;
@@ -154,6 +159,7 @@ export class CombatSandboxDirector {
     mixLabel: 'Music Mix E100 T0 C0 K0 B0 · broken sun drones'
   };
   private musicLabel = 'Music Mix E100 T0 C0 K0 B0 · broken sun drones';
+  private runSummaryLabel = 'Run 0:00 · K 0 · DMG 0/0 · Parry 0 · Dash 0 · AshSight 0 · Relic 0 · Intensity LOW';
   private hazardTickAccumulator = 0;
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
   private ashSightCooldown = 0;
@@ -230,6 +236,7 @@ export class CombatSandboxDirector {
 
   resetForRun(snapshot: ContinueSnapshot | null): void {
     this.enemies.splice(0, this.enemies.length);
+    this.statsTracker.reset();
     this.enemySerial = 0;
     this.health = MAX_HEALTH;
     this.guard = MAX_GUARD;
@@ -263,6 +270,7 @@ export class CombatSandboxDirector {
       mixLabel: 'Music Mix E100 T0 C0 K0 B0 · broken sun drones'
     };
     this.musicLabel = this.musicSnapshot.mixLabel;
+    this.runSummaryLabel = this.runSummaryBuilder.build(this.statsTracker.snapshot()).summaryLabel;
     this.bossActor.stop();
     this.arenaMutation.stop();
     this.arenaAudio.stop();
@@ -294,6 +302,7 @@ export class CombatSandboxDirector {
 
   update(actions: ActionState, deltaSeconds: number): CombatSandboxSnapshot {
     this.elapsedSeconds += deltaSeconds;
+    this.statsTracker.tick(deltaSeconds);
     this.resolveResources(deltaSeconds);
     this.resolveRewardInput(actions);
     this.resolvePlayerActions(actions);
@@ -328,6 +337,7 @@ export class CombatSandboxDirector {
       loadoutPoolLabel: this.loadoutPoolLabel,
       ashSightLabel: this.getAshSightLabel(),
       musicLabel: this.musicLabel,
+      runSummaryLabel: this.runSummaryLabel,
       musicMix: this.musicSnapshot
     };
   }
@@ -343,6 +353,7 @@ export class CombatSandboxDirector {
     });
     this.musicSnapshot = this.musicDirector.snapshot();
     this.musicLabel = this.musicSnapshot.mixLabel;
+    this.runSummaryLabel = this.runSummaryBuilder.build(this.statsTracker.snapshot()).summaryLabel;
   }
 
   private initializeFromSnapshot(snapshot: ContinueSnapshot | null): void {
@@ -415,6 +426,7 @@ export class CombatSandboxDirector {
     if (this.isRisingEdge(actions.interact, this.previousActions.interact)) {
       const selected = this.rewards.claimChoice(this.pendingReward);
       this.pendingReward = null;
+      this.statsTracker.recordRelicClaimed();
       this.rewardLabel = `${selected.displayName} claimed (${selected.rarity})`;
       this.objective = `${selected.displayName} を装備。次 room でシナジーを試す。`;
     }
@@ -444,6 +456,7 @@ export class CombatSandboxDirector {
 
     if (this.isRisingEdge(actions.parry, this.previousActions.parry)) {
       this.tryParry();
+      this.statsTracker.recordParry();
     }
 
     if (this.isRisingEdge(actions.interact, this.previousActions.interact)) {
@@ -453,6 +466,7 @@ export class CombatSandboxDirector {
     const dashFocusCost = this.getDashFocusCost();
     if (this.isRisingEdge(actions.dash, this.previousActions.dash) && this.focus >= dashFocusCost) {
       this.focus -= dashFocusCost;
+      this.statsTracker.recordDash();
       this.overburn = Math.min(MAX_OVERBURN, this.overburn + 12);
       this.objective = 'Dash cancelled: reposition and break a weak target.';
     }
@@ -465,6 +479,7 @@ export class CombatSandboxDirector {
 
     if (this.bossActor.isActive()) {
       const bossDamage = weapon.baseDamage * overburnMultiplier * parryBoostMultiplier;
+      this.statsTracker.recordDamageDealt(bossDamage);
       const defeated = this.bossActor.applyPlayerDamage(bossDamage);
       this.overburn = Math.min(MAX_OVERBURN, this.overburn + weapon.overburnGain);
       const bossSnapshot = this.bossActor.snapshot();
@@ -489,11 +504,14 @@ export class CombatSandboxDirector {
     const staggerMultiplier = target.staggerTimer > 0 ? modifiers.staggerDamageMultiplier : 1;
     const highOverburnBonus = this.overburn >= 50 && this.rewards.getEquippedRelics().includes('sunshard-buckle') ? 1.12 : 1;
     const totalMultiplier = overburnMultiplier * parryBoostMultiplier * staggerMultiplier * modifiers.primaryDamageMultiplier * highOverburnBonus;
-    target.health -= weapon.baseDamage * totalMultiplier;
+    const dealtDamage = weapon.baseDamage * totalMultiplier;
+    target.health -= dealtDamage;
+    this.statsTracker.recordDamageDealt(dealtDamage);
     this.overburn = Math.min(MAX_OVERBURN, this.overburn + weapon.overburnGain);
 
     if (target.health <= 0) {
       this.enemies.shift();
+      this.statsTracker.recordEnemyDefeated();
       this.focus = Math.min(MAX_FOCUS, this.focus + 10);
       this.objective = `Target neutralized with ${weapon.displayName}. Keep chain pressure.`;
     } else {
@@ -601,22 +619,24 @@ export class CombatSandboxDirector {
         const offhandWindowMultiplier = this.offhandGuardBoostTimer > 0 ? 0.82 : 1;
         const guardDamageMultiplier = this.bossPhaseRule?.guardDamageMultiplier ?? 1;
         const ashSightGuardMultiplier = this.ashSightRevealTimer > 0 ? 0.88 : 1;
-        this.guard = Math.max(
-          0,
-          this.guard
-            - enemy.damage
+        const guardDamage = enemy.damage
               * 0.65
               * relicModifiers.guardDamageTakenMultiplier
               * offhandWindowMultiplier
               * guardDamageMultiplier
-              * ashSightGuardMultiplier
+              * ashSightGuardMultiplier;
+        this.guard = Math.max(
+          0,
+          this.guard - guardDamage
         );
+        this.statsTracker.recordGuardBlocked(guardDamage);
         this.overburn = Math.min(MAX_OVERBURN, this.overburn + 5);
       } else {
         const incomingDamageMultiplier = this.bossPhaseRule?.incomingDamageMultiplier ?? 1;
         const ashSightDamageMultiplier = this.ashSightRevealTimer > 0 ? 0.9 : 1;
         const adjustedDamage = enemy.damage * incomingDamageMultiplier * ashSightDamageMultiplier;
         this.health = Math.max(0, this.health - adjustedDamage);
+        this.statsTracker.recordDamageTaken(adjustedDamage);
         this.roomDamageTaken += adjustedDamage;
       }
       enemy.attackTimer = enemy.attackInterval;
@@ -962,6 +982,7 @@ export class CombatSandboxDirector {
     }
 
     this.focus = Math.max(0, this.focus - ASH_SIGHT_FOCUS_COST);
+    this.statsTracker.recordAshSight();
     this.ashSightCooldown = ASH_SIGHT_COOLDOWN_SECONDS;
     this.ashSightRevealTimer = ASH_SIGHT_REVEAL_SECONDS;
     this.objective = 'Ash Sight engaged: weakpoints, breakables, and hidden routing echoes revealed.';
