@@ -2,8 +2,10 @@ import type { GameState } from './GameState';
 
 const TRANSITIONS: Readonly<Record<GameState, readonly GameState[]>> = {
   Boot: ['MainMenu'],
-  MainMenu: ['Settings', 'Hub', 'Credits', 'BossRush', 'EndlessCollapse'],
+  MainMenu: ['Settings', 'Accessibility', 'Controls', 'Hub', 'Credits', 'BossRush', 'EndlessCollapse'],
   Settings: ['MainMenu'],
+  Accessibility: ['MainMenu'],
+  Controls: ['MainMenu'],
   Hub: ['ExpeditionPrep', 'MetaUpgrade', 'MainMenu'],
   ExpeditionPrep: ['InExpedition', 'BossRush', 'EndlessCollapse', 'Hub'],
   InExpedition: ['MiniBoss', 'Boss', 'Extraction', 'GameOver'],

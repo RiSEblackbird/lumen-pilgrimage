@@ -353,8 +353,25 @@ export class Game {
       return;
     }
 
+    if (command === 'open-accessibility' && this.states.canTransition('Accessibility')) {
+      this.states.transition('Accessibility');
+      this.persistCurrentState();
+      return;
+    }
+
+    if (command === 'open-controls' && this.states.canTransition('Controls')) {
+      this.states.transition('Controls');
+      this.persistCurrentState();
+      return;
+    }
+
     if (command === 'toggle-snap-turn') {
       this.updateSettings({ snapTurn: !this.settingsViewModel.snapTurn });
+      return;
+    }
+
+    if (command === 'cycle-turn-style') {
+      this.updateSettings({ turnStyle: this.settingsViewModel.turnStyle === 'snap' ? 'smooth' : 'snap' });
       return;
     }
 
@@ -365,6 +382,31 @@ export class Game {
 
     if (command === 'toggle-reduce-flashing') {
       this.updateSettings({ reduceFlashing: !this.settingsViewModel.reduceFlashing });
+      return;
+    }
+
+    if (command === 'toggle-subtitles') {
+      this.updateSettings({ subtitleEnabled: !this.settingsViewModel.subtitleEnabled });
+      return;
+    }
+
+    if (command === 'toggle-colorblind-cues') {
+      this.updateSettings({ colorblindSafeCues: !this.settingsViewModel.colorblindSafeCues });
+      return;
+    }
+
+    if (command === 'toggle-reduce-screen-shake') {
+      this.updateSettings({ reduceScreenShake: !this.settingsViewModel.reduceScreenShake });
+      return;
+    }
+
+    if (command === 'toggle-tinnitus-safe-mode') {
+      this.updateSettings({ tinnitusSafeMode: !this.settingsViewModel.tinnitusSafeMode });
+      return;
+    }
+
+    if (command === 'toggle-reduce-sudden-peaks') {
+      this.updateSettings({ reduceSuddenPeaks: !this.settingsViewModel.reduceSuddenPeaks });
       return;
     }
 
@@ -390,6 +432,21 @@ export class Game {
 
     if (command === 'cycle-difficulty') {
       this.updateSettings({ difficultyId: nextDifficultyId(this.settingsViewModel.difficultyId) });
+      return;
+    }
+
+    if (command === 'toggle-hold-to-guard') {
+      this.updateSettings({ holdToGuard: !this.settingsViewModel.holdToGuard });
+      return;
+    }
+
+    if (command === 'toggle-aim-assist-flat') {
+      this.updateSettings({ aimAssistFlat: !this.settingsViewModel.aimAssistFlat });
+      return;
+    }
+
+    if (command === 'cycle-dominant-hand') {
+      this.updateSettings({ dominantHand: this.settingsViewModel.dominantHand === 'right' ? 'left' : 'right' });
       return;
     }
 
