@@ -4,6 +4,7 @@ export type InputAction =
   | 'moveLeft'
   | 'moveRight'
   | 'dash'
+  | 'ashSight'
   | 'primaryAttack'
   | 'guard'
   | 'parry'
@@ -19,6 +20,7 @@ export const EMPTY_ACTION_STATE: ActionState = {
   moveLeft: false,
   moveRight: false,
   dash: false,
+  ashSight: false,
   primaryAttack: false,
   guard: false,
   parry: false,

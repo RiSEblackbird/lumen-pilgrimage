@@ -6,6 +6,7 @@ const KEY_BINDINGS: Readonly<Record<string, InputAction>> = {
   KeyA: 'moveLeft',
   KeyD: 'moveRight',
   ShiftLeft: 'dash',
+  KeyR: 'ashSight',
   Space: 'primaryAttack',
   Mouse0: 'primaryAttack',
   Mouse2: 'guard',
