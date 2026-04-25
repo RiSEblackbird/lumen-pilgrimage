@@ -29,3 +29,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Validate content
+        run: npm run validate:content
+
+      - name: Validate release guard
+        run: npm run validate:release

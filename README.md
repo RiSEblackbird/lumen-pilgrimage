@@ -15,6 +15,7 @@ npm run dev
 npm run typecheck
 npm run build
 npm run validate:content
+npm run validate:release
 npm run check
 ```
 
@@ -39,7 +40,7 @@ npm run preview
 ```
 
 - `DEFAULT_GAME_CONFIG.enableDebugHud` は `import.meta.env.MODE !== "production"` に連動しており、release build（`vite build`）では `PerfHud` を生成しません。
-- release 前に `npm run validate:content` を含む `npm run check` を必ず通してください。
+- release 前に `npm run validate:content` と `npm run validate:release` を含む `npm run check` を必ず通してください。
 
 ## 現在の実装範囲（Phase 1〜Phase 3 基盤）
 
@@ -105,8 +106,10 @@ npm run preview
 - EncounterSpawnTables の archetype 参照が EnemyCatalog と整合すること
 - biome room graph の 10〜14 room quota・dead end・soft lock 検出
 - `src/` 配下に `dev` / `placeholder` 文言が残っていないこと（`src/engine/debug/PerfHud.ts` は許可）
+- `src/` に legacy 参照（`RitualState` / `GlyphSystem` / `DreamExporter` / `FlatCodexPanel` / `VrCodexPanel` / `Sanctuary`）が残っていないこと
+- `dist/` に debug helper / legacy loop のトークン（`PerfHud` / `DevOverlay` / `SpawnCheats` / `RitualState` / `GlyphSystem` / `DreamExporter`）が残っていないこと
 
-リリース前は `npm run check`（typecheck + build + content validation）を実行してください。
+リリース前は `npm run check`（typecheck + build + content validation + release validation）を実行してください。
 
 ## サンドボックス操作（flat-screen）
 
