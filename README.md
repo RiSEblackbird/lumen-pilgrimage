@@ -90,6 +90,7 @@ npm run preview
   - boss 戦中に arena device pulse callout を objective へ注入し、phase 情報の読解レイヤーを追加
   - `BossArenaAudioDirector` により arena mutation pulse / hazard tick を biome 固有 audio motif に変換し、phase ごとの reactive mix を HUD/objective へ反映
   - `MusicDirector` により biome / enemy pressure / overburn / boss phase に応じた music stem mix（exploration / threat / combat / clutch / boss）を算出し、HUD へ可視化
+  - run mode modifier（Campaign / Contracts / Boss Rush / Endless Collapse）をデータ駆動で導入し、敵圧・報酬倍率・resource 消耗・hazard 強度を mode ごとに差別化
   - HUD に boss HP readout と boss 専用 telegraph を表示
   - `Ash Sight`（Focus 消費 + cooldown）を tactical reveal として追加し、telegraph/route 読解を補助
   - difficulty layer（Pilgrim / Trial / Martyr）を追加し、敵HP/被ダメージ圧/telegraph 速度を mode 横断で調整

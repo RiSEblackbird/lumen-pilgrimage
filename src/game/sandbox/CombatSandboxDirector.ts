@@ -15,6 +15,7 @@ import {
 import { buildEncounterWave } from '../encounters/EncounterSpawnTables';
 import type { RouteStyle } from '../encounters/EncounterRuleSet';
 import { MISSION_TYPE_DEFS } from '../encounters/MissionTypes';
+import { runModeModifier } from '../encounters/RunModeModifiers';
 import { OFFHAND_DEFS } from '../items/OffhandDefs';
 import { DEFAULT_RELIC_MODIFIERS, buildRelicStatModifiers, type RelicStatModifiers } from '../items/RelicEffects';
 import { SIGIL_DEFS } from '../items/SigilDefs';
@@ -371,30 +372,26 @@ export class CombatSandboxDirector {
   }
 
   private applyModeObjectiveBias(): void {
-    if (this.expeditionPlan.runMode === 'contracts') {
-      this.objective = `${this.objective} [Contract Cycle]`;
-      return;
-    }
-
-    if (this.expeditionPlan.runMode === 'boss-rush') {
-      this.objective = 'Boss Rush: chain Warden contracts and survive phase escalations.';
-      return;
-    }
-
-    if (this.expeditionPlan.runMode === 'endless-collapse') {
-      this.objective = 'Endless Collapse: sustain pressure and extend survival loops.';
-    }
+    const modeModifier = runModeModifier(this.expeditionPlan.runMode);
+    this.objective = `${this.objective} ${modeModifier.objectiveSuffix}`.trim();
   }
 
   private resolveResources(deltaSeconds: number): void {
     const modifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
+    const modeModifier = runModeModifier(this.expeditionPlan.runMode);
     this.parryDamageBoostTimer = Math.max(0, this.parryDamageBoostTimer - deltaSeconds);
     this.offhandGuardBoostTimer = Math.max(0, this.offhandGuardBoostTimer - deltaSeconds);
     this.ashSightCooldown = Math.max(0, this.ashSightCooldown - deltaSeconds);
     this.ashSightRevealTimer = Math.max(0, this.ashSightRevealTimer - deltaSeconds);
-    this.focus = Math.min(MAX_FOCUS, this.focus + deltaSeconds * (4 + modifiers.focusRegenPerSecondBonus));
+    this.focus = Math.min(
+      MAX_FOCUS,
+      this.focus + deltaSeconds * (4 + modifiers.focusRegenPerSecondBonus) * modeModifier.focusRegenMultiplier
+    );
     this.guard = Math.min(MAX_GUARD, this.guard + deltaSeconds * 3);
-    this.overburn = Math.max(0, this.overburn - deltaSeconds * 6 * modifiers.overburnDecayMultiplier);
+    this.overburn = Math.max(
+      0,
+      this.overburn - deltaSeconds * 6 * modifiers.overburnDecayMultiplier * modeModifier.overburnDecayMultiplier
+    );
   }
 
   private resolveRewardInput(actions: ActionState): void {
@@ -541,11 +538,11 @@ export class CombatSandboxDirector {
   }
 
   private rotateLoadoutAndMission(): void {
+    const modeModifier = runModeModifier(this.expeditionPlan.runMode);
     this.weaponIndex = this.rotateIndex(this.weaponIndex, this.availableWeaponIndices);
     this.offhandIndex = this.rotateIndex(this.offhandIndex, this.availableOffhandIndices);
     this.sigilIndex = this.rotateIndex(this.sigilIndex, this.availableSigilIndices);
-    const missionStride = this.expeditionPlan.runMode === 'contracts' ? 2 : 1;
-    this.missionIndex = (this.missionIndex + missionStride) % MISSION_TYPE_DEFS.length;
+    this.missionIndex = (this.missionIndex + modeModifier.missionStride) % MISSION_TYPE_DEFS.length;
     this.encounter.setMissionRouteBias(MISSION_TYPE_DEFS[this.missionIndex].routeBias);
     this.syncPlanFromRuntimeSelection();
     this.objective = `${MISSION_TYPE_DEFS[this.missionIndex].targetObjective} / Loadout: ${WEAPON_DEFS[this.weaponIndex].displayName} + ${OFFHAND_DEFS[this.offhandIndex].displayName} + ${SIGIL_DEFS[this.sigilIndex].displayName}.`;
@@ -637,16 +634,18 @@ export class CombatSandboxDirector {
     const clearSeconds = this.elapsedSeconds - this.roomStartSeconds;
     const encounter = this.encounter.onRoomCleared(clearSeconds, this.roomDamageTaken >= 24);
     this.latestEncounter = encounter;
+    const modeModifier = runModeModifier(this.expeditionPlan.runMode);
+    const weightedReward = encounter.rewardWeight * modeModifier.rewardWeightMultiplier;
 
     const relicModifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
     this.focus = Math.min(MAX_FOCUS, this.focus + relicModifiers.roomClearFocusBonus);
     this.pendingReward = this.rewards.rollChoices(3, {
       biomeId: encounter.biomeId,
       routeStyle: encounter.routeStyle,
-      rewardWeight: encounter.rewardWeight,
+      rewardWeight: weightedReward,
       roomTags: encounter.roomTags
     });
-    this.rewardLabel = `${encounter.biomeName} / ${encounter.progressLabel} / reward x${encounter.rewardWeight.toFixed(2)}`;
+    this.rewardLabel = `${encounter.biomeName} / ${encounter.progressLabel} / reward x${weightedReward.toFixed(2)}`;
     this.encounterLabel = `${encounter.progressLabel} (${encounter.roomTags.join(', ')})`;
     this.objective = 'Wave cleared. Reward altar is active.';
 
@@ -699,24 +698,33 @@ export class CombatSandboxDirector {
     });
 
     const difficulty = resolveDifficulty(this.difficultyId);
+    const modeModifier = runModeModifier(this.expeditionPlan.runMode);
+    const bonusWaves = Math.max(0, modeModifier.waveCountBonus);
+    const waveIterations = 1 + bonusWaves;
 
-    for (const template of waveTemplates) {
-      const attackIntervalMultiplier = (this.bossPhaseRule?.attackIntervalMultiplier ?? 1) * difficulty.enemyAttackIntervalMultiplier;
-      const telegraphLeadMultiplier = (this.bossPhaseRule?.telegraphLeadMultiplier ?? 1) * difficulty.enemyTelegraphMultiplier;
-      this.enemies.push(
-        this.createEnemy(
-          template.archetypeId,
-          template.label,
-          Math.round(template.baseHealth * difficulty.enemyHealthMultiplier),
-          Math.round(template.baseDamage * difficulty.enemyDamageMultiplier),
-          template.attackInterval * attackIntervalMultiplier,
-          {
-            meleeWeight: template.meleeWeight,
-            rangedWeight: template.rangedWeight
-          },
-          template.telegraphLead * telegraphLeadMultiplier
-        )
-      );
+    for (let waveIndex = 0; waveIndex < waveIterations; waveIndex += 1) {
+      for (const template of waveTemplates) {
+        const attackIntervalMultiplier = (this.bossPhaseRule?.attackIntervalMultiplier ?? 1)
+          * difficulty.enemyAttackIntervalMultiplier
+          * modeModifier.enemyAttackIntervalMultiplier;
+        const telegraphLeadMultiplier = (this.bossPhaseRule?.telegraphLeadMultiplier ?? 1)
+          * difficulty.enemyTelegraphMultiplier
+          * modeModifier.enemyTelegraphMultiplier;
+        this.enemies.push(
+          this.createEnemy(
+            template.archetypeId,
+            template.label,
+            Math.round(template.baseHealth * difficulty.enemyHealthMultiplier * modeModifier.enemyHealthMultiplier),
+            Math.round(template.baseDamage * difficulty.enemyDamageMultiplier * modeModifier.enemyDamageMultiplier),
+            template.attackInterval * attackIntervalMultiplier,
+            {
+              meleeWeight: template.meleeWeight,
+              rangedWeight: template.rangedWeight
+            },
+            template.telegraphLead * telegraphLeadMultiplier
+          )
+        );
+      }
     }
   }
 
@@ -827,8 +835,9 @@ export class CombatSandboxDirector {
       return;
     }
 
-    const hazardDamagePerSecond = this.bossPhaseRule.ambientHazardDamagePerSecond;
-    const focusDrainPerSecond = this.bossPhaseRule.focusDrainPerSecond;
+    const modeModifier = runModeModifier(this.expeditionPlan.runMode);
+    const hazardDamagePerSecond = this.bossPhaseRule.ambientHazardDamagePerSecond * modeModifier.hazardDamageMultiplier;
+    const focusDrainPerSecond = this.bossPhaseRule.focusDrainPerSecond * modeModifier.focusDrainMultiplier;
     if (hazardDamagePerSecond > 0) {
       const hazardDamage = hazardDamagePerSecond * deltaSeconds;
       this.health = Math.max(0, this.health - hazardDamage);
@@ -928,7 +937,8 @@ export class CombatSandboxDirector {
   private getContractLabel(): string {
     const mission = MISSION_TYPE_DEFS[this.missionIndex];
     const difficulty = resolveDifficulty(this.difficultyId).label;
-    return `${mission.displayName} (${mission.routeBias.join(' > ')}) / Difficulty: ${difficulty}`;
+    const modeModifier = runModeModifier(this.expeditionPlan.runMode);
+    return `${mission.displayName} (${mission.routeBias.join(' > ')}) / Difficulty: ${difficulty} / ${modeModifier.contractLabel}`;
   }
 
 
