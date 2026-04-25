@@ -16,11 +16,13 @@
 1. release ガード用スクリプトを実装し、src/dist の禁止トークン検査を追加。
 2. `npm run check` と CI に release 検証を組み込み。
 3. README の検証手順を更新し、コマンドを明文化。
+4. mission など player-facing テキストに legacy 語彙（ritual/glyph）が再流入しないよう content validation を追加。
 
 ## 受け入れ条件
 - `npm run validate:release` が成功する。
 - `npm run check` が成功する。
 - CI に content/release validation が追加される。
+- `npm run validate:content` で mission 文字列の legacy 語彙混入を検出できる。
 
 ## 検証コマンド
 - `npm run validate:release`

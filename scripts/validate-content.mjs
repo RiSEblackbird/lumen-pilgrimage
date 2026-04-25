@@ -124,6 +124,28 @@ function extractPairsFromConstArray(relativePath, constName, keys) {
   });
 }
 
+function extractMissionTextEntries(relativePath) {
+  const { sourceFile } = parseTs(relativePath);
+  const initializer = findConstInitializer(sourceFile, 'MISSION_TYPE_DEFS');
+  const arrayNode = asArrayLiteral(initializer, 'MISSION_TYPE_DEFS');
+
+  return arrayNode.elements.map((element, index) => {
+    const objectNode = asObjectLiteral(element, `MISSION_TYPE_DEFS[${index}]`);
+    return {
+      id: readStringLiteral(getObjectProperty(objectNode, 'id', `MISSION_TYPE_DEFS[${index}]`), `MISSION_TYPE_DEFS[${index}].id`),
+      displayName: readStringLiteral(
+        getObjectProperty(objectNode, 'displayName', `MISSION_TYPE_DEFS[${index}]`),
+        `MISSION_TYPE_DEFS[${index}].displayName`
+      ),
+      summary: readStringLiteral(getObjectProperty(objectNode, 'summary', `MISSION_TYPE_DEFS[${index}]`), `MISSION_TYPE_DEFS[${index}].summary`),
+      targetObjective: readStringLiteral(
+        getObjectProperty(objectNode, 'targetObjective', `MISSION_TYPE_DEFS[${index}]`),
+        `MISSION_TYPE_DEFS[${index}].targetObjective`
+      )
+    };
+  });
+}
+
 function extractEnemyBiomePairs(relativePath, constName) {
   const { sourceFile } = parseTs(relativePath);
   const initializer = findConstInitializer(sourceFile, constName);
@@ -326,6 +348,36 @@ function scanDebugStrings() {
   console.log('✓ release guard: no dev/placeholder tokens under src/ (allowlist applied)');
 }
 
+function assertNoLegacyMissionLexicon(missionEntries) {
+  const forbiddenLexicon = [
+    { token: 'ritual', regex: /\britual\b/i },
+    { token: 'glyph', regex: /\bglyph(s)?\b/i }
+  ];
+  const violations = [];
+
+  for (const mission of missionEntries) {
+    const fields = [
+      { key: 'displayName', value: mission.displayName },
+      { key: 'summary', value: mission.summary },
+      { key: 'targetObjective', value: mission.targetObjective }
+    ];
+
+    for (const field of fields) {
+      for (const forbidden of forbiddenLexicon) {
+        if (forbidden.regex.test(field.value)) {
+          violations.push(`${mission.id}.${field.key}: contains forbidden token "${forbidden.token}"`);
+        }
+      }
+    }
+  }
+
+  if (violations.length > 0) {
+    throw new Error(`[content validation] Legacy mission lexicon detected:\n${violations.join('\n')}`);
+  }
+
+  console.log('✓ mission text: no legacy ritual/glyph lexicon in player-facing mission strings');
+}
+
 function run() {
   const weaponIds = extractIdsFromConstArray('src/game/items/WeaponDefs.ts', 'WEAPON_DEFS', 'id');
   const offhandIds = extractIdsFromConstArray('src/game/items/OffhandDefs.ts', 'OFFHAND_DEFS', 'id');
@@ -333,6 +385,7 @@ function run() {
   const relicIds = extractIdsFromConstArray('src/game/items/RelicDefs.ts', 'RELIC_DEFS', 'id');
   const lootTables = parseLootTables('src/game/items/LootTables.ts');
   const missionIds = extractIdsFromConstArray('src/game/encounters/MissionTypes.ts', 'MISSION_TYPE_DEFS', 'id');
+  const missionTextEntries = extractMissionTextEntries('src/game/encounters/MissionTypes.ts');
   const bossContracts = extractPairsFromConstArray('src/game/encounters/BossContracts.ts', 'BOSS_CONTRACTS', ['biomeId', 'bossEnemyId']);
   const bossContractBiomeIds = bossContracts.map((contract) => contract.biomeId);
   const campaignBiomeIds = extractIdsFromConstArray('src/game/state/CampaignBiomes.ts', 'CAMPAIGN_BIOME_ORDER', 'id');
@@ -368,6 +421,7 @@ function run() {
   console.log(`✓ loot table relic references: all ${lootRelicIds.length} entries resolve in RelicDefs`);
 
   assertNoDuplicateIds('mission', missionIds);
+  assertNoLegacyMissionLexicon(missionTextEntries);
 
   const allEnemyIds = [...regularEnemyIds, ...eliteEnemyIds, ...miniBossIds, ...bossEnemyIds];
   assertNoDuplicateIds('enemy catalog', allEnemyIds);
