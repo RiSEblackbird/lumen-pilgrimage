@@ -8,6 +8,7 @@ export interface GameConfig {
   readonly title: string;
   readonly subtitle: string;
   readonly targets: PerformanceTargets;
+  readonly enableDebugHud: boolean;
 }
 
 export const DEFAULT_GAME_CONFIG: GameConfig = {
@@ -17,5 +18,6 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     desktopFps: 60,
     standaloneXrFps: 72,
     pcvrFps: 90
-  }
+  },
+  enableDebugHud: import.meta.env.MODE !== "production"
 };
