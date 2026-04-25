@@ -11,9 +11,9 @@ import { GameStateMachine } from '../game/state/GameStateMachine';
 import { CampaignState } from '../game/state/CampaignState';
 import { ExpeditionState } from '../game/state/ExpeditionState';
 import { MetaProgressionState } from '../game/state/MetaProgressionState';
-import { FIRST_BIOME_ID, normalizeUnlockedBiomes } from '../game/state/CampaignBiomes';
+import { FIRST_BIOME_ID, campaignBiomeLabel, normalizeUnlockedBiomes } from '../game/state/CampaignBiomes';
 import { HudManager } from '../game/ui/HudManager';
-import { MenuManager, type ContinueSnapshot, type HubViewModel, type MenuCommand, type SettingsViewModel } from '../game/ui/MenuManager';
+import { MenuManager, type ContinueSnapshot, type HubViewModel, type MenuCommand, type SaveSlotSummary, type SettingsViewModel } from '../game/ui/MenuManager';
 import type { ExpeditionPrepViewModel } from '../game/ui/MenuManager';
 import { VrWristUi } from '../game/ui/VrWristUi';
 import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
@@ -23,6 +23,7 @@ import { MISSION_TYPE_DEFS } from '../game/encounters/MissionTypes';
 import { DEFAULT_RUN_MODE, type RunMode } from '../game/state/RunMode';
 
 export class Game {
+  private static readonly SAVE_SLOT_IDS = [0, 1, 2] as const;
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -54,6 +55,7 @@ export class Game {
   private readonly expeditionState = new ExpeditionState();
   private readonly metaState: MetaProgressionState;
   private selectedRunMode: RunMode = DEFAULT_RUN_MODE;
+  private activeSlotId = 0;
 
   constructor(container: HTMLElement) {
     this.renderer = new WebGLRenderer({ antialias: true });
@@ -74,7 +76,7 @@ export class Game {
 
     this.settingsViewModel = this.settings.load();
     this.settings.save(this.settingsViewModel);
-    const slot = this.saves.loadOrCreate(0, {
+    const slot = this.saves.loadOrCreate(this.activeSlotId, {
       state: 'Hub',
       unlockedBiomes: [FIRST_BIOME_ID],
       expedition: null,
@@ -94,6 +96,7 @@ export class Game {
     this.menu.setHub(this.hubViewModel);
     this.menu.setExpeditionPrep(this.expeditionPrep);
     this.menu.setSelectedRunMode(this.selectedRunMode);
+    this.syncSaveSlotMenu();
     this.applyRuntimeSettings();
     this.syncHubWristUi();
 
@@ -170,7 +173,7 @@ export class Game {
         this.saveAccumulator = 0;
         const snapshot = this.combatSandbox.getPersistenceSnapshot();
         this.expeditionState.syncFromPersistence(snapshot);
-        const updated = this.saves.updateExpedition(0, {
+        const updated = this.saves.updateExpedition(this.activeSlotId, {
           biomeId: snapshot.biomeId,
           missionId: snapshot.missionId,
           sectorIndex: snapshot.sectorIndex,
@@ -194,6 +197,7 @@ export class Game {
           this.hubViewModel = this.toHubViewModel(updated.unlockedBiomes, updated.metaProgress);
           this.menu.setContinueSnapshot(this.continueSnapshot);
           this.menu.setHub(this.hubViewModel);
+          this.syncSaveSlotMenu();
         }
       }
     });
@@ -217,6 +221,21 @@ export class Game {
 
     if (command === 'launch-expedition') {
       this.startExpeditionFromHub();
+      return;
+    }
+
+    if (command === 'select-save-slot-0') {
+      this.switchSaveSlot(0);
+      return;
+    }
+
+    if (command === 'select-save-slot-1') {
+      this.switchSaveSlot(1);
+      return;
+    }
+
+    if (command === 'select-save-slot-2') {
+      this.switchSaveSlot(2);
       return;
     }
 
@@ -431,7 +450,7 @@ export class Game {
   }
 
   private startNewGame(): void {
-    const slot = this.saves.resetSlot(0, {
+    const slot = this.saves.resetSlot(this.activeSlotId, {
       state: 'Hub',
       unlockedBiomes: [FIRST_BIOME_ID],
       expedition: null,
@@ -451,6 +470,7 @@ export class Game {
     this.runActive = false;
     this.selectedRunMode = DEFAULT_RUN_MODE;
     this.menu.setSelectedRunMode(this.selectedRunMode);
+    this.syncSaveSlotMenu();
     if (this.states.canTransition('Hub')) {
       this.states.transition('Hub');
       this.persistCurrentState();
@@ -458,7 +478,7 @@ export class Game {
   }
 
   private tryUnlockAstralPike(): void {
-    const updated = this.saves.updateMetaProgress(0, (meta) => {
+    const updated = this.saves.updateMetaProgress(this.activeSlotId, (meta) => {
       if (meta.unlockedWeapons.includes('astral-pike') || meta.lumenAsh < 80) {
         return meta;
       }
@@ -472,7 +492,7 @@ export class Game {
   }
 
   private tryCraftBeaconCrucible(): void {
-    const updated = this.saves.updateMetaProgress(0, (meta) => {
+    const updated = this.saves.updateMetaProgress(this.activeSlotId, (meta) => {
       if (meta.unlockedOffhands.includes('beacon-crucible') || meta.choirThread < 20) {
         return meta;
       }
@@ -496,6 +516,7 @@ export class Game {
     this.menu.setHub(this.hubViewModel);
     this.expeditionPrep = this.toExpeditionPrepViewModel(this.combatSandbox.getExpeditionPlan(), this.hubViewModel);
     this.menu.setExpeditionPrep(this.expeditionPrep);
+    this.syncSaveSlotMenu();
   }
 
   private toHubViewModel(unlockedBiomes: readonly string[], meta: MetaProgress): HubViewModel {
@@ -683,7 +704,70 @@ export class Game {
   }
 
   private persistCurrentState(): void {
-    this.saves.updateState(0, this.states.current);
+    this.saves.updateState(this.activeSlotId, this.states.current);
+    this.syncSaveSlotMenu();
+  }
+
+  private switchSaveSlot(slotId: number): void {
+    if (this.activeSlotId === slotId) {
+      return;
+    }
+
+    this.activeSlotId = slotId;
+    const slot = this.saves.loadOrCreate(this.activeSlotId, {
+      state: 'Hub',
+      unlockedBiomes: [FIRST_BIOME_ID],
+      expedition: null,
+      metaProgress: DEFAULT_META_PROGRESS
+    });
+
+    this.runActive = false;
+    this.selectedRunMode = DEFAULT_RUN_MODE;
+    this.menu.setSelectedRunMode(this.selectedRunMode);
+    this.continueSnapshot = slot.expedition;
+    this.campaignState.replaceUnlockedBiomes(slot.unlockedBiomes);
+    this.metaState.replace(slot.metaProgress);
+    this.expeditionState.restoreFromContinue(slot.expedition);
+    this.combatSandbox.configureLoadoutAvailability(slot.metaProgress);
+    this.combatSandbox.resetForRun(slot.expedition);
+    this.hubViewModel = this.toHubViewModel(slot.unlockedBiomes, slot.metaProgress);
+    this.expeditionPrep = this.toExpeditionPrepViewModel(this.combatSandbox.getExpeditionPlan(), this.hubViewModel);
+    this.menu.setContinueSnapshot(this.continueSnapshot);
+    this.menu.setHub(this.hubViewModel);
+    this.menu.setExpeditionPrep(this.expeditionPrep);
+    this.states.transition('MainMenu');
+    this.persistCurrentState();
+    this.syncHubWristUi();
+    this.syncSaveSlotMenu();
+  }
+
+  private syncSaveSlotMenu(): void {
+    const summaries: SaveSlotSummary[] = Game.SAVE_SLOT_IDS.map((slotId) => {
+      const slot = this.saves.load(slotId);
+      if (!slot) {
+        return {
+          slotId,
+          hasSave: false,
+          stateLabel: 'No data',
+          updatedAtLabel: 'Never'
+        };
+      }
+
+      const updatedAt = new Date(slot.updatedAtIso);
+      const updatedAtLabel = Number.isNaN(updatedAt.getTime()) ? slot.updatedAtIso : updatedAt.toLocaleString();
+      const stateLabel = slot.expedition
+        ? `${slot.state} / ${campaignBiomeLabel(slot.expedition.biomeId)}`
+        : slot.state;
+
+      return {
+        slotId,
+        hasSave: true,
+        stateLabel,
+        updatedAtLabel
+      };
+    });
+
+    this.menu.setSaveSlots(summaries, this.activeSlotId);
   }
 
   private updateDebug(deltaSeconds: number): void {

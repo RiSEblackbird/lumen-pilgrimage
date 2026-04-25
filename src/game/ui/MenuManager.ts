@@ -56,7 +56,17 @@ export interface SettingsViewModel {
   readonly masterVolume: number;
 }
 
+export interface SaveSlotSummary {
+  readonly slotId: number;
+  readonly hasSave: boolean;
+  readonly stateLabel: string;
+  readonly updatedAtLabel: string;
+}
+
 export type MenuCommand =
+  | 'select-save-slot-0'
+  | 'select-save-slot-1'
+  | 'select-save-slot-2'
   | 'continue'
   | 'new-game'
   | 'open-mode-select'
@@ -97,6 +107,8 @@ export class MenuManager {
   private prep: ExpeditionPrepViewModel | null = null;
   private selectedRunMode: RunMode = 'campaign';
   private uiScale = 1;
+  private saveSlots: readonly SaveSlotSummary[] = [];
+  private activeSaveSlotId = 0;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -139,6 +151,12 @@ export class MenuManager {
 
   setSelectedRunMode(mode: RunMode): void {
     this.selectedRunMode = mode;
+    this.render();
+  }
+
+  setSaveSlots(slots: readonly SaveSlotSummary[], activeSlotId: number): void {
+    this.saveSlots = slots;
+    this.activeSaveSlotId = activeSlotId;
     this.render();
   }
 
@@ -233,6 +251,34 @@ export class MenuManager {
     subtitle.textContent = 'Main Menu';
     subtitle.style.opacity = '0.8';
     panel.append(subtitle);
+
+    if (this.saveSlots.length > 0) {
+      panel.append(this.createInfoLabel(`Active Save Slot: ${this.activeSaveSlotId + 1}`));
+      const slotButtons = document.createElement('div');
+      slotButtons.style.display = 'flex';
+      slotButtons.style.gap = '6px';
+      slotButtons.style.flexWrap = 'wrap';
+      for (const slot of this.saveSlots) {
+        const label = `Slot ${slot.slotId + 1}${slot.hasSave ? '' : ' (Empty)'}`;
+        const command = slot.slotId === 0
+          ? 'select-save-slot-0'
+          : slot.slotId === 1
+            ? 'select-save-slot-1'
+            : 'select-save-slot-2';
+        const button = this.createCommandButton(label, command);
+        if (slot.slotId === this.activeSaveSlotId) {
+          button.style.borderColor = '#9ad0ff';
+          button.style.boxShadow = '0 0 0 1px rgba(154, 208, 255, 0.35) inset';
+        }
+        slotButtons.append(button);
+      }
+      panel.append(slotButtons);
+      const activeSlot = this.saveSlots.find((slot) => slot.slotId === this.activeSaveSlotId);
+      if (activeSlot) {
+        panel.append(this.createInfoLabel(`Slot State: ${activeSlot.stateLabel}`));
+        panel.append(this.createInfoLabel(`Last Update: ${activeSlot.updatedAtLabel}`));
+      }
+    }
 
     if (snapshot) {
       const continueMeta = document.createElement('div');

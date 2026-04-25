@@ -18,7 +18,8 @@
     "phase4-hub-terminal-wrist-parity",
     "phase4-room-graph-branching",
     "phase5-mode-select",
-    "phase5-xr-controller-pointer"
+    "phase5-xr-controller-pointer",
+    "phase5-save-slots"
   ],
   "in_progress": [
     "phase5-hub-biome-boss-foundation"
