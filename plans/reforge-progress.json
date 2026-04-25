@@ -28,15 +28,16 @@
     "phase5-loot-table-validation",
     "phase5-enemy-catalog-contract-wiring",
     "phase5-audio-stem-source-routing",
-    "phase6-arena-visual-hooks"
+    "phase6-arena-visual-hooks",
+    "phase6-world-assembler-foundation"
   ],
   "in_progress": [
     "phase5-campaign-content-scaleout",
     "phase6-arena-device-runtime"
   ],
   "next_actions": [
-    "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
-    "scale hub widget states into authored terminal geometry/VFX assets once world assembler lands"
+    "bind authored biome geometry/VFX assets into WorldAssembler transitions (light sweep, altar flare, caustic proxies)",
+    "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions"
   ],
   "smoke_commands": [
     "npm run typecheck",

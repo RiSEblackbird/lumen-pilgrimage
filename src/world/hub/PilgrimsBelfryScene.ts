@@ -41,8 +41,6 @@ export class PilgrimsBelfryScene {
   };
 
   constructor(private readonly scene: Scene) {
-    this.scene.background = new Color(0x06080f);
-
     const ambience = new AmbientLight(0x7f8aa8, 0.9);
     const key = new DirectionalLight(0xffe4bc, 1.2);
     key.position.set(3, 8, 2);
