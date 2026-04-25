@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run build && npm run validate:content",
-    "validate:content": "node scripts/validate-content.mjs"
+    "check": "npm run typecheck && npm run build && npm run validate:content && npm run validate:release",
+    "validate:content": "node scripts/validate-content.mjs",
+    "validate:release": "node scripts/validate-release.mjs"
   },
   "dependencies": {
     "three": "0.184.0"
