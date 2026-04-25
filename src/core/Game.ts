@@ -35,7 +35,7 @@ export class Game {
   private readonly xrInput: XRActionAdapter;
   private readonly settings = new SettingsStore();
   private readonly saves = new SaveManager();
-  private readonly perfHud: PerfHud;
+  private readonly perfHud: PerfHud | null;
   private readonly menu: MenuManager;
   private readonly hud: HudManager;
   private readonly vrUi = new VrWristUi();
@@ -70,7 +70,7 @@ export class Game {
 
     this.desktopInput = new DesktopActionAdapter(window);
     this.xrInput = new XRActionAdapter(this.renderer);
-    this.perfHud = new PerfHud(container);
+    this.perfHud = DEFAULT_GAME_CONFIG.enableDebugHud ? new PerfHud(container) : null;
     this.menu = new MenuManager(container);
     this.hud = new HudManager(container);
     this.hubScene = new PilgrimsBelfryScene(this.scene);
@@ -404,7 +404,7 @@ export class Game {
   private applyRuntimeSettings(): void {
     this.menu.setUiScale(this.settingsViewModel.uiScale);
     this.hud.setUiScale(this.settingsViewModel.uiScale);
-    this.perfHud.setUiScale(this.settingsViewModel.uiScale);
+    this.perfHud?.setUiScale(this.settingsViewModel.uiScale);
     this.audioListener.setMasterVolume(this.settingsViewModel.masterVolume);
     this.xrInput.setComfort({
       snapTurn: this.settingsViewModel.snapTurn,
@@ -783,6 +783,10 @@ export class Game {
   }
 
   private updateDebug(deltaSeconds: number): void {
+    if (!this.perfHud) {
+      return;
+    }
+
     this.fpsAccumulator += deltaSeconds;
     this.fpsFrameCount += 1;
 

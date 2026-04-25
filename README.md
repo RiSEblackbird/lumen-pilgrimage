@@ -18,6 +18,29 @@ npm run validate:content
 npm run check
 ```
 
+## build / check / release 手順
+
+1. 開発中の検証
+
+```bash
+npm run check
+```
+
+2. リリースビルド生成
+
+```bash
+npm run build
+```
+
+3. 生成物確認（任意）
+
+```bash
+npm run preview
+```
+
+- `DEFAULT_GAME_CONFIG.enableDebugHud` は `import.meta.env.MODE !== "production"` に連動しており、release build（`vite build`）では `PerfHud` を生成しません。
+- release 前に `npm run validate:content` を含む `npm run check` を必ず通してください。
+
 ## 現在の実装範囲（Phase 1〜Phase 3 基盤）
 
 - 新エントリ: `AppBootstrap` → `Game`
