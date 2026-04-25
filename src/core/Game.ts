@@ -100,6 +100,7 @@ export class Game {
     this.menu.setSelectedRunMode(this.selectedRunMode);
     this.syncSaveSlotMenu();
     this.applyRuntimeSettings();
+    this.syncHubWorldWidgets();
     this.syncHubWristUi();
 
     container.appendChild(this.renderer.domElement);
@@ -130,6 +131,7 @@ export class Game {
       this.handleMenuCommands();
 
       if (!this.runActive) {
+        this.syncHubWorldWidgets();
         this.syncHubWristUi();
         this.hud.render({
           health: 100,
@@ -202,6 +204,7 @@ export class Game {
           this.menu.setContinueSnapshot(this.continueSnapshot);
           this.menu.setHub(this.hubViewModel);
           this.syncSaveSlotMenu();
+          this.syncHubWorldWidgets();
         }
       }
     });
@@ -398,6 +401,7 @@ export class Game {
     this.settings.save(this.settingsViewModel);
     this.menu.setSettings(this.settingsViewModel);
     this.applyRuntimeSettings();
+    this.syncHubWorldWidgets();
     this.syncHubWristUi();
   }
 
@@ -481,6 +485,7 @@ export class Game {
     this.selectedRunMode = DEFAULT_RUN_MODE;
     this.menu.setSelectedRunMode(this.selectedRunMode);
     this.syncSaveSlotMenu();
+    this.syncHubWorldWidgets();
     if (this.states.canTransition('Hub')) {
       this.states.transition('Hub');
       this.persistCurrentState();
@@ -526,6 +531,7 @@ export class Game {
     this.menu.setHub(this.hubViewModel);
     this.expeditionPrep = this.toExpeditionPrepViewModel(this.combatSandbox.getExpeditionPlan(), this.hubViewModel);
     this.menu.setExpeditionPrep(this.expeditionPrep);
+    this.syncHubWorldWidgets();
     this.syncSaveSlotMenu();
   }
 
@@ -587,6 +593,7 @@ export class Game {
       offhandId: next.selectedOffhandId,
       sigilId: next.selectedSigilId
     });
+    this.syncHubWorldWidgets();
     this.syncHubWristUi();
   }
 
@@ -715,6 +722,33 @@ export class Game {
     }
   }
 
+  private syncHubWorldWidgets(): void {
+    const unlockedBiomeCount = this.hubViewModel.unlockedBiomes.length;
+    const maxBiomeGoal = 6;
+    const expeditionIntensity = Math.min(1, unlockedBiomeCount / maxBiomeGoal);
+    const prepReadiness = this.expeditionPrep.selectedBiomeId && this.expeditionPrep.selectedMissionId ? 1 : 0.4;
+    this.hubScene.setTerminalWidgetState('expedition-prep-terminal', {
+      label: `Expedition Ready · ${campaignBiomeLabel(this.expeditionPrep.selectedBiomeId)}`,
+      intensity: Math.max(expeditionIntensity, prepReadiness)
+    });
+
+    const unlockCount =
+      this.hubViewModel.unlockedWeapons.length +
+      this.hubViewModel.unlockedOffhands.length +
+      this.hubViewModel.unlockedSigils.length;
+    const unlockGoal = 20;
+    this.hubScene.setTerminalWidgetState('meta-upgrade-terminal', {
+      label: `Meta Unlocks ${unlockCount}/${unlockGoal}`,
+      intensity: Math.min(1, unlockCount / unlockGoal)
+    });
+
+    const returnIntensity = this.continueSnapshot ? 0.78 : 0.45;
+    this.hubScene.setTerminalWidgetState('main-menu-terminal', {
+      label: this.continueSnapshot ? 'Return + Continue Available' : 'Return to Main Menu',
+      intensity: returnIntensity
+    });
+  }
+
   private persistCurrentState(): void {
     this.saves.updateState(this.activeSlotId, this.states.current);
     this.syncSaveSlotMenu();
@@ -749,6 +783,7 @@ export class Game {
     this.menu.setExpeditionPrep(this.expeditionPrep);
     this.states.transition('MainMenu');
     this.persistCurrentState();
+    this.syncHubWorldWidgets();
     this.syncHubWristUi();
     this.syncSaveSlotMenu();
   }
