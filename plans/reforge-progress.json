@@ -17,7 +17,8 @@
     "phase4-hub-meta-progression",
     "phase4-hub-terminal-wrist-parity",
     "phase4-room-graph-branching",
-    "phase5-mode-select"
+    "phase5-mode-select",
+    "phase5-xr-controller-pointer"
   ],
   "in_progress": [
     "phase5-hub-biome-boss-foundation"
@@ -25,7 +26,7 @@
   "next_actions": [
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
     "integrate arena mutation callouts with biome-specific audio reactive hooks",
-    "replace HMD-forward fallback with per-controller pointer source selection in XR hub terminals"
+    "expand XR hub terminal affordances with per-terminal diegetic hand-specific prompt geometry"
   ],
   "smoke_commands": [
     "npm run typecheck",
