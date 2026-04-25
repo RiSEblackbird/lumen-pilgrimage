@@ -159,6 +159,7 @@ export class Game {
           bossLabel: 'No Warden contact',
           bossHealthLabel: 'Boss HP: -',
           arenaMutationLabel: 'Arena stable',
+          arenaEffectsLabel: 'Arena effects idle',
           loadoutPoolLabel: this.metaState.toLoadoutPoolLabel(),
           ashSightLabel: 'Ash Sight READY (Cost 20 Focus, CD 12s)',
           musicLabel: 'Music Mix E100 T0 C0 K0 B0 · hub sanctuary ambience',

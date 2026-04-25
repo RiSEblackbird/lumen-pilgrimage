@@ -30,9 +30,11 @@
     "phase5-audio-stem-source-routing"
   ],
   "in_progress": [
-    "phase5-campaign-content-scaleout"
+    "phase5-campaign-content-scaleout",
+    "phase6-arena-device-runtime"
   ],
   "next_actions": [
+    "wire arena device runtime outputs into authored geometry/VFX hooks",
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
     "scale hub widget states into authored terminal geometry/VFX assets once world assembler lands"
   ],
