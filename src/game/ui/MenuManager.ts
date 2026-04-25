@@ -56,6 +56,15 @@ export interface SettingsViewModel {
   readonly reduceFlashing: boolean;
   readonly masterVolume: number;
   readonly difficultyId: DifficultyId;
+  readonly subtitleEnabled: boolean;
+  readonly colorblindSafeCues: boolean;
+  readonly reduceScreenShake: boolean;
+  readonly holdToGuard: boolean;
+  readonly aimAssistFlat: boolean;
+  readonly dominantHand: 'right' | 'left';
+  readonly turnStyle: 'snap' | 'smooth';
+  readonly tinnitusSafeMode: boolean;
+  readonly reduceSuddenPeaks: boolean;
 }
 
 export interface SaveSlotSummary {
@@ -83,15 +92,26 @@ export type MenuCommand =
   | 'unlock-astral-pike'
   | 'craft-beacon-crucible'
   | 'open-settings'
+  | 'open-accessibility'
+  | 'open-controls'
   | 'open-credits'
   | 'toggle-snap-turn'
+  | 'cycle-turn-style'
   | 'toggle-seated-mode'
   | 'toggle-reduce-flashing'
+  | 'toggle-subtitles'
+  | 'toggle-colorblind-cues'
+  | 'toggle-reduce-screen-shake'
+  | 'toggle-tinnitus-safe-mode'
+  | 'toggle-reduce-sudden-peaks'
   | 'ui-scale-down'
   | 'ui-scale-up'
   | 'master-volume-down'
   | 'master-volume-up'
   | 'cycle-difficulty'
+  | 'toggle-hold-to-guard'
+  | 'toggle-aim-assist-flat'
+  | 'cycle-dominant-hand'
   | 'prep-cycle-biome'
   | 'prep-cycle-mission'
   | 'prep-cycle-weapon'
@@ -204,6 +224,18 @@ export class MenuManager {
       return;
     }
 
+    if (this.state === 'Accessibility') {
+      this.root.innerHTML = '';
+      this.root.append(this.createAccessibilityPanel());
+      return;
+    }
+
+    if (this.state === 'Controls') {
+      this.root.innerHTML = '';
+      this.root.append(this.createControlsPanel());
+      return;
+    }
+
     if (this.state === 'Credits') {
       this.root.innerHTML = '';
       this.root.append(this.createCreditsPanel());
@@ -302,6 +334,8 @@ export class MenuManager {
     panel.append(this.createCommandButton('Mode Select', 'open-mode-select'));
     panel.append(this.createCommandButton('Enter Hub', 'enter-hub'));
     panel.append(this.createCommandButton('Settings', 'open-settings'));
+    panel.append(this.createCommandButton('Accessibility', 'open-accessibility'));
+    panel.append(this.createCommandButton('Controls', 'open-controls'));
     panel.append(this.createCommandButton('Credits', 'open-credits'));
     return panel;
   }
@@ -429,6 +463,8 @@ export class MenuManager {
       return panel;
     }
 
+    panel.append(this.createInfoLabel(`Turn Style: ${settings.turnStyle === 'snap' ? 'Snap' : 'Smooth'}`));
+    panel.append(this.createCommandButton('Cycle Turn Style', 'cycle-turn-style'));
     panel.append(this.createInfoLabel(`Snap Turn: ${settings.snapTurn ? 'ON' : 'OFF'}`));
     panel.append(this.createCommandButton('Toggle Snap Turn', 'toggle-snap-turn'));
     panel.append(this.createInfoLabel(`Seated Mode: ${settings.seatedMode ? 'ON' : 'OFF'}`));
@@ -458,6 +494,84 @@ export class MenuManager {
     volumeRow.append(this.createCommandButton('Volume +', 'master-volume-up'));
     panel.append(volumeRow);
 
+    panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+    return panel;
+  }
+
+  private createAccessibilityPanel(): HTMLElement {
+    const panel = document.createElement('div');
+    panel.style.display = 'grid';
+    panel.style.gap = '8px';
+    panel.style.minWidth = '320px';
+
+    const title = document.createElement('div');
+    title.textContent = 'Accessibility';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '700';
+    panel.append(title);
+
+    const settings = this.settings;
+    if (!settings) {
+      panel.append(this.createInfoLabel('Accessibility settings unavailable'));
+      panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+      return panel;
+    }
+
+    panel.append(this.createInfoLabel(`Subtitles: ${settings.subtitleEnabled ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Subtitles', 'toggle-subtitles'));
+    panel.append(this.createInfoLabel(`Colorblind-safe Cues: ${settings.colorblindSafeCues ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Colorblind-safe Cues', 'toggle-colorblind-cues'));
+    panel.append(this.createInfoLabel(`Reduce Flashing: ${settings.reduceFlashing ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Reduce Flashing', 'toggle-reduce-flashing'));
+    panel.append(this.createInfoLabel(`Reduce Screen Shake: ${settings.reduceScreenShake ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Reduce Screen Shake', 'toggle-reduce-screen-shake'));
+    panel.append(this.createInfoLabel(`Tinnitus-safe Mode: ${settings.tinnitusSafeMode ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Tinnitus-safe Mode', 'toggle-tinnitus-safe-mode'));
+    panel.append(this.createInfoLabel(`Reduce Sudden Peaks: ${settings.reduceSuddenPeaks ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Reduce Sudden Peaks', 'toggle-reduce-sudden-peaks'));
+    panel.append(this.createInfoLabel(`UI Scale: ${(settings.uiScale * 100).toFixed(0)}%`));
+
+    const scaleRow = document.createElement('div');
+    scaleRow.style.display = 'grid';
+    scaleRow.style.gridTemplateColumns = '1fr 1fr';
+    scaleRow.style.gap = '8px';
+    scaleRow.append(this.createCommandButton('Scale -', 'ui-scale-down'));
+    scaleRow.append(this.createCommandButton('Scale +', 'ui-scale-up'));
+    panel.append(scaleRow);
+
+    panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+    return panel;
+  }
+
+  private createControlsPanel(): HTMLElement {
+    const panel = document.createElement('div');
+    panel.style.display = 'grid';
+    panel.style.gap = '8px';
+    panel.style.minWidth = '320px';
+
+    const title = document.createElement('div');
+    title.textContent = 'Controls';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '700';
+    panel.append(title);
+
+    const settings = this.settings;
+    if (!settings) {
+      panel.append(this.createInfoLabel('Control settings unavailable'));
+      panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
+      return panel;
+    }
+
+    panel.append(this.createInfoLabel(`Dominant Hand (VR): ${settings.dominantHand === 'right' ? 'Right' : 'Left'}`));
+    panel.append(this.createCommandButton('Cycle Dominant Hand', 'cycle-dominant-hand'));
+    panel.append(this.createInfoLabel(`Hold to Guard: ${settings.holdToGuard ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Hold to Guard', 'toggle-hold-to-guard'));
+    panel.append(this.createInfoLabel(`Aim Assist (Flat): ${settings.aimAssistFlat ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Aim Assist (Flat)', 'toggle-aim-assist-flat'));
+    panel.append(this.createInfoLabel(`Seated Mode: ${settings.seatedMode ? 'ON' : 'OFF'}`));
+    panel.append(this.createCommandButton('Toggle Seated Mode', 'toggle-seated-mode'));
+    panel.append(this.createInfoLabel('Flat: LMB Attack / RMB Guard / Shift Dash / Q Offhand / E Interact'));
+    panel.append(this.createInfoLabel('VR: Trigger Primary / Squeeze Offhand / Stick Move + Turn'));
     panel.append(this.createCommandButton('Back to Main Menu', 'back-main-menu'));
     return panel;
   }

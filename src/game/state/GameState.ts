@@ -2,6 +2,8 @@ export type GameState =
   | 'Boot'
   | 'MainMenu'
   | 'Settings'
+  | 'Accessibility'
+  | 'Controls'
   | 'Hub'
   | 'ExpeditionPrep'
   | 'InExpedition'
@@ -18,6 +20,8 @@ export const GAME_STATE_ORDER: readonly GameState[] = [
   'Boot',
   'MainMenu',
   'Settings',
+  'Accessibility',
+  'Controls',
   'Hub',
   'ExpeditionPrep',
   'InExpedition',
