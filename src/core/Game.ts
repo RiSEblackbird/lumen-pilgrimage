@@ -135,6 +135,7 @@ export class Game {
           encounterLabel: 'Awaiting expedition launch',
           contractLabel: 'No contract',
           bossLabel: 'No Warden contact',
+          bossHealthLabel: 'Boss HP: -',
           arenaMutationLabel: 'Arena stable',
           loadoutPoolLabel: this.metaState.toLoadoutPoolLabel()
         });

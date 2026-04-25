@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。加えて MainMenu で Continue / New Game の起動分岐、Settings / Credits の専用パネル遷移、Hub/MetaUpgrade の恒久成長プレースホルダ（通貨表示・unlock/craft保存）を導入しました。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。加えて MainMenu で Continue / New Game の起動分岐、Settings / Credits の専用パネル遷移、Hub/MetaUpgrade の恒久成長プレースホルダ（通貨表示・unlock/craft保存）を導入しました。
 
 ## セットアップ
 
@@ -57,6 +57,8 @@ npm run check
   - continue snapshot に roomId を保存し、起動時に mission/room/vitals/relic を sandbox へ再適用
   - continue snapshot に missionId を保存し、mission 表示名変更に影響されない復帰解決へ移行（旧 save は missionName 互換復帰）
   - boss-approach room 到達時に biome 別 Warden contract（Cinder Litany / Lunar Refraction）を起動し、時間+Overburn 条件で phase を進行
+  - `BossActorDirector` により biome 別 boss profile（HP/攻撃タイプ/telegraph）を管理し、phase 連動で攻撃間隔・被弾圧を更新
+  - HUD に boss HP readout と boss 専用 telegraph を表示
 
 ## サンドボックス操作（flat-screen）
 
@@ -94,6 +96,7 @@ src/
       GameState.ts
       GameStateMachine.ts
     director/
+      BossActorDirector.ts
       EnemyCoordinator.ts
     encounters/
       MissionTypes.ts
@@ -113,4 +116,4 @@ src/
 
 ## 次フェーズ方針
 
-Phase 4 継続として、Hub unlock/craft の実戦ロードアウト反映、Ember/Moon boss の本戦挙動、Settings 値の実ランタイム反映（音量/UI スケール/快適性設定）を実装します。
+Phase 4 継続として、BossActorDirector と arena device/VFX の接続、Hub unlock/craft の実戦ロードアウト反映、Ember/Moon boss の本戦挙動強化を進めます。
