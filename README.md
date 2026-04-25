@@ -1,6 +1,6 @@
 # Lumen Pilgrimage: Reforge
 
-Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。加えて MainMenu で Continue / New Game の起動分岐、Settings / Credits の専用パネル遷移、Hub/MetaUpgrade の恒久成長プレースホルダ（通貨表示・unlock/craft保存）を導入しました。
+Lumen Pilgrimage を、旧 ritual/glyph デモ構成から **XR + flat 両対応のアクション探索ゲーム基盤**へ移行中です。現状は Phase 4 着手段階として、Hub の戦闘サンドボックスに EncounterDirector を接続し、sector/room 進行に加えて room graph 分岐（risk/recovery/secret）、enemy coordinator 圧制御、reward 選択、relic 取得、continue snapshot からの run 復帰、boss-approach room で biome 別 Warden contract（multi-phase）HUD readout と phase 連動の戦闘補正を確認できる状態です。さらに `BossActorDirector` を追加し、wave だけに依存しないボス専用 HP・攻撃ローテーション・telegraph 表示の基盤を導入しました。加えて `ArenaMutationDirector` を導入し、boss phase の `arenaMutationSummary` を biome 別 device 強度ラベルと定期 pulse callout に変換して HUD/objective に反映します。加えて MainMenu で Continue / New Game の起動分岐、Settings / Credits の専用パネル遷移、Hub/MetaUpgrade の恒久成長プレースホルダ（通貨表示・unlock/craft保存）を導入しました。
 
 ## セットアップ
 
@@ -58,6 +58,8 @@ npm run check
   - continue snapshot に missionId を保存し、mission 表示名変更に影響されない復帰解決へ移行（旧 save は missionName 互換復帰）
   - boss-approach room 到達時に biome 別 Warden contract（Cinder Litany / Lunar Refraction）を起動し、時間+Overburn 条件で phase を進行
   - `BossActorDirector` により biome 別 boss profile（HP/攻撃タイプ/telegraph）を管理し、phase 連動で攻撃間隔・被弾圧を更新
+  - `ArenaMutationDirector` により arena mutation を biome 固有 device（例: Censer Vents, Mirror Gates, Overcharge Rails）へ投影し、phase 進行で強度を更新
+  - boss 戦中に arena device pulse callout を objective へ注入し、phase 情報の読解レイヤーを追加
   - HUD に boss HP readout と boss 専用 telegraph を表示
 
 ## サンドボックス操作（flat-screen）
@@ -96,6 +98,7 @@ src/
       GameState.ts
       GameStateMachine.ts
     director/
+      ArenaMutationDirector.ts
       BossActorDirector.ts
       EnemyCoordinator.ts
     encounters/
@@ -116,4 +119,4 @@ src/
 
 ## 次フェーズ方針
 
-Phase 4 継続として、BossActorDirector と arena device/VFX の接続、Hub unlock/craft の実戦ロードアウト反映、Ember/Moon boss の本戦挙動強化を進めます。
+Phase 4 継続として、arena device を実ジオメトリ/VFX へ接続しつつ、Hub unlock/craft の実戦ロードアウト反映、Ember/Moon boss の本戦挙動強化を進めます。

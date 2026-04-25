@@ -9,7 +9,7 @@
 - `engine/debug`: Perf HUD。
 - `game/state`: game state machine。
 - `game/items`: 武器/副手段/sigil/relic のデータ定義と relic stat modifier。
-- `game/director`: 敵圧制御、reward 選択、room 進行制御。
+- `game/director`: 敵圧制御、reward 選択、room 進行制御、boss arena mutation 制御。
 - `game/encounters`: mission / biome room rule / room-tag spawn table のデータ定義。
 - `game/sandbox`: 戦闘サンドボックス進行。
 - `game/ui`: HUD / menu / VR wrist UI。
@@ -36,6 +36,8 @@
   - `EncounterDirector`
   - `EnemyCoordinator`
   - `RewardDirector`
+  - `BossActorDirector`
+  - `ArenaMutationDirector`
   - `MissionTypes`
   - `EncounterRuleSet`
   - `WeaponDefs`
@@ -68,6 +70,7 @@
 - `SaveManager` は `metaProgress`（通貨 + unlock 状態）を save slot に保存し、旧 save 互換として `metaProgress` 欠落時は default 値を補完する。
 - `SaveManager.resetSlot` は New Game の slot 初期化を担い、既存 continue snapshot と meta progression を安全に再生成する。
 - `CombatSandboxDirector` は `boss-approach` room tag を検知すると `BossContracts` から biome 別 contract を読み込み、時間 + Overburn 条件で phase を進行し、phase ごとの攻撃間隔/telegraph/被ダメ補正を適用する。
+- `CombatSandboxDirector` は `ArenaMutationDirector` を通じて boss phase の `arenaMutationSummary` を biome 固有 device 状態（強度％）へ変換し、HUD と objective へ反映する。
 - `CombatSandboxDirector` は loadout availability から pool 数（W/O/S の解放数/総数）を算出し、HUD へ表示する。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 
