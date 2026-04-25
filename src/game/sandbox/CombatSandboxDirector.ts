@@ -93,6 +93,7 @@ export interface CombatSandboxSnapshot {
   readonly bossLabel: string;
   readonly bossHealthLabel: string;
   readonly arenaMutationLabel: string;
+  readonly arenaEffectsLabel: string;
   readonly loadoutPoolLabel: string;
   readonly ashSightLabel: string;
   readonly musicLabel: string;
@@ -151,6 +152,7 @@ export class CombatSandboxDirector {
   private bossLabel = 'No Warden contact';
   private bossHealthLabel = 'Boss HP: -';
   private arenaMutationLabel = 'Arena stable';
+  private arenaEffectsLabel = 'Arena effects idle';
   private arenaAudioLabel = 'Audio reactive bus idle';
   private musicSnapshot: MusicMixSnapshot = {
     biomeId: 'default',
@@ -262,6 +264,7 @@ export class CombatSandboxDirector {
     this.bossLabel = 'No Warden contact';
     this.bossHealthLabel = 'Boss HP: -';
     this.arenaMutationLabel = 'Arena stable';
+    this.arenaEffectsLabel = 'Arena effects idle';
     this.arenaAudioLabel = 'Audio reactive bus idle';
     this.musicSnapshot = {
       biomeId: this.expeditionPlan.biomeId,
@@ -334,6 +337,7 @@ export class CombatSandboxDirector {
       bossLabel: this.bossLabel,
       bossHealthLabel: this.bossHealthLabel,
       arenaMutationLabel: `${this.arenaMutationLabel} / ${this.arenaAudioLabel}`,
+      arenaEffectsLabel: this.arenaEffectsLabel,
       loadoutPoolLabel: this.loadoutPoolLabel,
       ashSightLabel: this.getAshSightLabel(),
       musicLabel: this.musicLabel,
@@ -761,6 +765,7 @@ export class CombatSandboxDirector {
       this.bossLabel = 'No Warden contact';
       this.bossHealthLabel = 'Boss HP: -';
       this.arenaMutationLabel = 'Arena stable';
+      this.arenaEffectsLabel = 'Arena effects idle';
       this.arenaAudioLabel = 'Audio reactive bus idle';
       this.bossPhase = 0;
       this.hazardTickAccumulator = 0;
@@ -778,6 +783,7 @@ export class CombatSandboxDirector {
       this.bossLabel = 'Unknown Warden signature';
       this.bossHealthLabel = 'Boss HP: unknown';
       this.arenaMutationLabel = 'Arena mutation unknown';
+      this.arenaEffectsLabel = 'Arena effects uncertain';
       this.arenaAudioLabel = 'Audio reactive bus uncertain';
       this.objective = 'Warden trace detected. Continue pressure to extract phase data.';
       return;
@@ -789,7 +795,9 @@ export class CombatSandboxDirector {
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${this.bossPhase}/${this.bossContract.phases.length} (${this.bossPhaseRule.title})`;
     this.bossHealthLabel = `Boss HP: ${bossSnapshot.maxHealth > 0 ? ((bossSnapshot.currentHealth / bossSnapshot.maxHealth) * 100).toFixed(0) : '0'}%`;
     const arenaSnapshot = this.arenaMutation.snapshot();
+    const effectSnapshot = this.arenaMutation.effectSnapshot();
     this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel}`;
+    this.arenaEffectsLabel = effectSnapshot.summary;
     this.arenaAudioLabel = this.arenaAudio.snapshot().mixLabel;
     this.objective = `${this.bossContract.bossName} 接触。${this.bossPhaseRule.mechanicSummary}`;
   }
@@ -809,7 +817,9 @@ export class CombatSandboxDirector {
     this.bossPhase = resolvedPhase.index;
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${resolvedPhase.index}/${this.bossContract.phases.length} (${resolvedPhase.title})`;
     const arenaSnapshot = this.arenaMutation.snapshot();
+    const effectSnapshot = this.arenaMutation.effectSnapshot();
     this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel} / ${this.arenaAudio.snapshot().pulseCallout}`;
+    this.arenaEffectsLabel = effectSnapshot.summary;
     this.arenaAudioLabel = this.arenaAudio.snapshot().mixLabel;
     if (phaseChanged) {
       this.objective = `${this.bossContract.bossName} phase shift: ${resolvedPhase.mechanicSummary}`;
@@ -858,8 +868,24 @@ export class CombatSandboxDirector {
     }
 
     const modeModifier = runModeModifier(this.expeditionPlan.runMode);
-    const hazardDamagePerSecond = this.bossPhaseRule.ambientHazardDamagePerSecond * modeModifier.hazardDamageMultiplier;
-    const focusDrainPerSecond = this.bossPhaseRule.focusDrainPerSecond * modeModifier.focusDrainMultiplier;
+    const phaseHazardDamagePerSecond = this.bossPhaseRule.ambientHazardDamagePerSecond * modeModifier.hazardDamageMultiplier;
+    const phaseFocusDrainPerSecond = this.bossPhaseRule.focusDrainPerSecond * modeModifier.focusDrainMultiplier;
+    const effectSnapshot = this.arenaMutation.effectSnapshot();
+    let hazardDamagePerSecond = phaseHazardDamagePerSecond;
+    let focusDrainPerSecond = phaseFocusDrainPerSecond;
+    let guardTaxPerSecond = 0;
+    let overburnPerSecond = 0;
+    for (const effect of effectSnapshot.effects) {
+      if (effect.effectType === 'hazard-damage') {
+        hazardDamagePerSecond += effect.scaledRate * 0.25;
+      } else if (effect.effectType === 'focus-drain') {
+        focusDrainPerSecond += effect.scaledRate * 0.2;
+      } else if (effect.effectType === 'guard-tax') {
+        guardTaxPerSecond += effect.scaledRate * 0.18;
+      } else if (effect.effectType === 'overburn-pressure') {
+        overburnPerSecond += effect.scaledRate * 0.2;
+      }
+    }
     if (hazardDamagePerSecond > 0) {
       const hazardDamage = hazardDamagePerSecond * deltaSeconds;
       this.health = Math.max(0, this.health - hazardDamage);
@@ -868,8 +894,14 @@ export class CombatSandboxDirector {
     if (focusDrainPerSecond > 0) {
       this.focus = Math.max(0, this.focus - focusDrainPerSecond * deltaSeconds);
     }
+    if (guardTaxPerSecond > 0) {
+      this.guard = Math.max(0, this.guard - guardTaxPerSecond * deltaSeconds);
+    }
+    if (overburnPerSecond > 0) {
+      this.overburn = Math.min(MAX_OVERBURN, this.overburn + overburnPerSecond * deltaSeconds);
+    }
 
-    if (hazardDamagePerSecond === 0 && focusDrainPerSecond === 0) {
+    if (hazardDamagePerSecond === 0 && focusDrainPerSecond === 0 && guardTaxPerSecond === 0 && overburnPerSecond === 0) {
       return;
     }
 
@@ -881,7 +913,9 @@ export class CombatSandboxDirector {
 
     const pressureSummary = [
       hazardDamagePerSecond > 0 ? `hazard -${hazardDamagePerSecond.toFixed(1)} HP/s` : null,
-      focusDrainPerSecond > 0 ? `focus -${focusDrainPerSecond.toFixed(1)}/s` : null
+      focusDrainPerSecond > 0 ? `focus -${focusDrainPerSecond.toFixed(1)}/s` : null,
+      guardTaxPerSecond > 0 ? `guard -${guardTaxPerSecond.toFixed(1)}/s` : null,
+      overburnPerSecond > 0 ? `overburn +${overburnPerSecond.toFixed(1)}/s` : null
     ]
       .filter((value): value is string => value !== null)
       .join(', ');
