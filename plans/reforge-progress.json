@@ -14,15 +14,16 @@
     "phase4-boss-contracts",
     "phase4-biome-content-expansion",
     "phase4-expedition-prep-loadout",
-    "phase4-dedicated-boss-actor-foundation"
+    "phase4-dedicated-boss-actor-foundation",
+    "phase4-boss-arena-device-hooks"
   ],
   "in_progress": [
     "phase4-hub-biome-boss-foundation"
   ],
   "next_actions": [
-    "integrate boss actor director with authored arena devices and boss-specific VFX/audio hooks",
     "expand expedition prep into world-space terminal + wrist UI parity",
-    "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions"
+    "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions",
+    "integrate arena mutation callouts with biome-specific audio reactive hooks"
   ],
   "smoke_commands": [
     "npm run typecheck",

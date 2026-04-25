@@ -3,6 +3,7 @@ import { BossActorDirector } from '../director/BossActorDirector';
 import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
 import { RewardDirector, type RewardChoiceState } from '../director/RewardDirector';
+import { ArenaMutationDirector } from '../director/ArenaMutationDirector';
 import {
   getBossContractForBiome,
   resolveBossPhase,
@@ -97,6 +98,7 @@ export class CombatSandboxDirector {
   private readonly rewards = new RewardDirector();
   private readonly encounter = new EncounterDirector();
   private readonly bossActor = new BossActorDirector();
+  private readonly arenaMutation = new ArenaMutationDirector();
   private latestEncounter = this.encounter.snapshot();
 
   private enemySerial = 0;
@@ -216,6 +218,7 @@ export class CombatSandboxDirector {
     this.bossHealthLabel = 'Boss HP: -';
     this.arenaMutationLabel = 'Arena stable';
     this.bossActor.stop();
+    this.arenaMutation.stop();
     this.hazardTickAccumulator = 0;
     this.rewards.setEquippedRelics([]);
     this.previousActions = {
@@ -243,6 +246,7 @@ export class CombatSandboxDirector {
     this.resolveRewardInput(actions);
     this.resolvePlayerActions(actions);
     this.updateBossState(deltaSeconds);
+    this.updateArenaMutationPulse(deltaSeconds);
     this.applyArenaMutationHazards(deltaSeconds);
     this.resolveEnemyPressure(deltaSeconds, actions);
     this.previousActions = actions;
@@ -615,6 +619,7 @@ export class CombatSandboxDirector {
       this.bossContract = null;
       this.bossPhaseRule = null;
       this.bossActor.stop();
+      this.arenaMutation.stop();
       this.bossPhaseElapsed = 0;
       this.bossLabel = 'No Warden contact';
       this.bossHealthLabel = 'Boss HP: -';
@@ -630,6 +635,7 @@ export class CombatSandboxDirector {
     this.bossPhase = this.bossPhaseRule?.index ?? 1;
     if (!this.bossContract || !this.bossPhaseRule) {
       this.bossActor.stop();
+      this.arenaMutation.stop();
       this.bossLabel = 'Unknown Warden signature';
       this.bossHealthLabel = 'Boss HP: unknown';
       this.arenaMutationLabel = 'Arena mutation unknown';
@@ -637,10 +643,12 @@ export class CombatSandboxDirector {
       return;
     }
     this.bossActor.begin(this.bossContract, this.bossPhaseRule);
+    this.arenaMutation.enterContract(this.bossContract, this.bossPhaseRule);
     const bossSnapshot = this.bossActor.snapshot();
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${this.bossPhase}/${this.bossContract.phases.length} (${this.bossPhaseRule.title})`;
     this.bossHealthLabel = `Boss HP: ${bossSnapshot.maxHealth > 0 ? ((bossSnapshot.currentHealth / bossSnapshot.maxHealth) * 100).toFixed(0) : '0'}%`;
-    this.arenaMutationLabel = this.bossPhaseRule.arenaMutationSummary;
+    const arenaSnapshot = this.arenaMutation.snapshot();
+    this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel}`;
     this.objective = `${this.bossContract.bossName} 接触。${this.bossPhaseRule.mechanicSummary}`;
   }
 
@@ -654,9 +662,11 @@ export class CombatSandboxDirector {
     const phaseChanged = this.bossPhaseRule?.index !== resolvedPhase.index;
     this.bossPhaseRule = resolvedPhase;
     this.bossActor.setPhaseRule(resolvedPhase);
+    this.arenaMutation.applyPhaseRule(resolvedPhase);
     this.bossPhase = resolvedPhase.index;
     this.bossLabel = `${this.bossContract.bossName} / ${this.bossContract.contractLabel} / Phase ${resolvedPhase.index}/${this.bossContract.phases.length} (${resolvedPhase.title})`;
-    this.arenaMutationLabel = resolvedPhase.arenaMutationSummary;
+    const arenaSnapshot = this.arenaMutation.snapshot();
+    this.arenaMutationLabel = `${arenaSnapshot.mutationSummary} / ${arenaSnapshot.deviceLabel}`;
     if (phaseChanged) {
       this.objective = `${this.bossContract.bossName} phase shift: ${resolvedPhase.mechanicSummary}`;
       this.hazardTickAccumulator = 0;
@@ -684,6 +694,15 @@ export class CombatSandboxDirector {
     if (this.health <= 0) {
       this.resetAfterDown();
     }
+  }
+
+  private updateArenaMutationPulse(deltaSeconds: number): void {
+    const pulseCallout = this.arenaMutation.tick(deltaSeconds);
+    if (!pulseCallout || !this.bossPhaseRule) {
+      return;
+    }
+
+    this.objective = `${this.bossPhaseRule.title}: ${pulseCallout}. ${this.bossPhaseRule.mechanicSummary}`;
   }
 
   private applyArenaMutationHazards(deltaSeconds: number): void {
