@@ -162,6 +162,47 @@ function extractEnemyBiomePairs(relativePath, constName) {
   });
 }
 
+function extractBossContractFormEnemyRefs(relativePath) {
+  const { sourceFile } = parseTs(relativePath);
+  const initializer = findConstInitializer(sourceFile, 'BOSS_CONTRACTS');
+  const arrayNode = asArrayLiteral(initializer, 'BOSS_CONTRACTS');
+
+  const refs = [];
+
+  for (const [index, element] of arrayNode.elements.entries()) {
+    const objectNode = asObjectLiteral(element, `BOSS_CONTRACTS[${index}]`);
+    const biomeId = readStringLiteral(getObjectProperty(objectNode, 'biomeId', `BOSS_CONTRACTS[${index}]`), `BOSS_CONTRACTS[${index}].biomeId`);
+    const formsProperty = objectNode.properties.find((entry) => {
+      if (!ts.isPropertyAssignment(entry)) {
+        return false;
+      }
+      if (ts.isIdentifier(entry.name)) {
+        return entry.name.text === 'bossForms';
+      }
+      if (ts.isStringLiteral(entry.name)) {
+        return entry.name.text === 'bossForms';
+      }
+      return false;
+    });
+
+    if (!formsProperty || !ts.isPropertyAssignment(formsProperty)) {
+      continue;
+    }
+
+    const formsNode = asArrayLiteral(formsProperty.initializer, `BOSS_CONTRACTS[${index}].bossForms`);
+    refs.push(...formsNode.elements.map((formNode, formIndex) => {
+      const formObject = asObjectLiteral(formNode, `BOSS_CONTRACTS[${index}].bossForms[${formIndex}]`);
+      const enemyId = readStringLiteral(
+        getObjectProperty(formObject, 'enemyId', `BOSS_CONTRACTS[${index}].bossForms[${formIndex}]`),
+        `BOSS_CONTRACTS[${index}].bossForms[${formIndex}].enemyId`
+      );
+      return { biomeId, enemyId };
+    }));
+  }
+
+  return refs;
+}
+
 function collectArchetypeIds(relativePath) {
   const { sourceFile } = parseTs(relativePath);
   const ids = new Set();
@@ -387,6 +428,7 @@ function run() {
   const missionIds = extractIdsFromConstArray('src/game/encounters/MissionTypes.ts', 'MISSION_TYPE_DEFS', 'id');
   const missionTextEntries = extractMissionTextEntries('src/game/encounters/MissionTypes.ts');
   const bossContracts = extractPairsFromConstArray('src/game/encounters/BossContracts.ts', 'BOSS_CONTRACTS', ['biomeId', 'bossEnemyId']);
+  const bossFormEnemyRefs = extractBossContractFormEnemyRefs('src/game/encounters/BossContracts.ts');
   const bossContractBiomeIds = bossContracts.map((contract) => contract.biomeId);
   const campaignBiomeIds = extractIdsFromConstArray('src/game/state/CampaignBiomes.ts', 'CAMPAIGN_BIOME_ORDER', 'id');
   const regularEnemyIds = extractIdsFromConstArray('src/content/enemies/EnemyCatalog.ts', 'REGULAR_ENEMIES', 'id');
@@ -450,6 +492,18 @@ function run() {
     }
   }
   console.log(`✓ boss contracts: ${bossContracts.length} contracts map to boss catalog biome assignments`);
+
+  const unknownBossFormEnemyIds = bossFormEnemyRefs.map((entry) => entry.enemyId).filter((enemyId) => !bossEnemyIds.includes(enemyId));
+  if (unknownBossFormEnemyIds.length > 0) {
+    throw new Error(`[content validation] BossContracts has unknown bossForms.enemyId values: ${[...new Set(unknownBossFormEnemyIds)].join(', ')}`);
+  }
+  for (const formRef of bossFormEnemyRefs) {
+    const supportedBiomes = bossEnemyBiomeMap.get(formRef.enemyId) ?? [];
+    if (!supportedBiomes.includes(formRef.biomeId)) {
+      throw new Error(`[content validation] Boss form biome mismatch: ${formRef.enemyId} not registered for biome ${formRef.biomeId}`);
+    }
+  }
+  console.log(`✓ boss forms: ${bossFormEnemyRefs.length} references resolve in boss catalog biome assignments`);
 
   const biomeSeeds = parseBiomeRoomSeeds('src/game/encounters/EncounterRuleSet.ts');
   for (const biomeSeed of biomeSeeds) {

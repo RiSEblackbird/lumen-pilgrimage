@@ -72,6 +72,12 @@ export const BOSS_ENEMIES: readonly EnemyCatalogEntry[] = [
     displayName: 'The Last Cantor / Broken Sun Choir',
     role: 'grabber',
     biomeIds: ['broken-sun-choir']
+  },
+  {
+    id: 'broken-sun-choir-incarnate',
+    displayName: 'Broken Sun Choir Incarnate',
+    role: 'area-denial',
+    biomeIds: ['broken-sun-choir']
   }
 ] as const;
 

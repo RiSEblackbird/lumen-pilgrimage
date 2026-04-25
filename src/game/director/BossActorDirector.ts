@@ -1,4 +1,4 @@
-import type { BossContract, BossPhaseRule } from '../encounters/BossContracts';
+import { resolveBossForm, type BossContract, type BossPhaseRule } from '../encounters/BossContracts';
 
 export type BossAttackType =
   | 'strike'
@@ -343,7 +343,7 @@ export class BossActorDirector {
     const attack = this.currentAttack();
     return {
       active: true,
-      bossName: this.contract.bossName,
+      bossName: resolveBossForm(this.contract, this.phaseRule?.index ?? 1)?.displayName ?? this.contract.bossName,
       currentHealth: this.currentHealth,
       maxHealth: this.profile.maxHealth,
       phaseIndex: this.phaseRule?.index ?? 1,
