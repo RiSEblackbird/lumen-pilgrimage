@@ -1,5 +1,5 @@
 import type { ActionState } from '../../engine/input/ActionMap';
-import { MusicDirector } from '../../engine/audio/MusicDirector';
+import { MusicDirector, type MusicMixSnapshot } from '../../engine/audio/MusicDirector';
 import { BossActorDirector } from '../director/BossActorDirector';
 import { EncounterDirector } from '../director/EncounterDirector';
 import { EnemyCoordinator } from '../director/EnemyCoordinator';
@@ -92,6 +92,7 @@ export interface CombatSandboxSnapshot {
   readonly loadoutPoolLabel: string;
   readonly ashSightLabel: string;
   readonly musicLabel: string;
+  readonly musicMix: MusicMixSnapshot;
 }
 
 const MAX_HEALTH = 100;
@@ -144,6 +145,12 @@ export class CombatSandboxDirector {
   private bossHealthLabel = 'Boss HP: -';
   private arenaMutationLabel = 'Arena stable';
   private arenaAudioLabel = 'Audio reactive bus idle';
+  private musicSnapshot: MusicMixSnapshot = {
+    biomeId: 'default',
+    motif: 'broken sun drones',
+    stems: { exploration: 1, threat: 0, combat: 0, clutch: 0, boss: 0 },
+    mixLabel: 'Music Mix E100 T0 C0 K0 B0 · broken sun drones'
+  };
   private musicLabel = 'Music Mix E100 T0 C0 K0 B0 · broken sun drones';
   private hazardTickAccumulator = 0;
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
@@ -215,6 +222,10 @@ export class CombatSandboxDirector {
     return this.expeditionPlan;
   }
 
+  getMusicMixSnapshot(): MusicMixSnapshot {
+    return this.musicSnapshot;
+  }
+
   resetForRun(snapshot: ContinueSnapshot | null): void {
     this.enemies.splice(0, this.enemies.length);
     this.enemySerial = 0;
@@ -243,7 +254,13 @@ export class CombatSandboxDirector {
     this.bossHealthLabel = 'Boss HP: -';
     this.arenaMutationLabel = 'Arena stable';
     this.arenaAudioLabel = 'Audio reactive bus idle';
-    this.musicLabel = 'Music Mix E100 T0 C0 K0 B0 · broken sun drones';
+    this.musicSnapshot = {
+      biomeId: this.expeditionPlan.biomeId,
+      motif: 'broken sun drones',
+      stems: { exploration: 1, threat: 0, combat: 0, clutch: 0, boss: 0 },
+      mixLabel: 'Music Mix E100 T0 C0 K0 B0 · broken sun drones'
+    };
+    this.musicLabel = this.musicSnapshot.mixLabel;
     this.bossActor.stop();
     this.arenaMutation.stop();
     this.arenaAudio.stop();
@@ -308,7 +325,8 @@ export class CombatSandboxDirector {
       arenaMutationLabel: `${this.arenaMutationLabel} / ${this.arenaAudioLabel}`,
       loadoutPoolLabel: this.loadoutPoolLabel,
       ashSightLabel: this.getAshSightLabel(),
-      musicLabel: this.musicLabel
+      musicLabel: this.musicLabel,
+      musicMix: this.musicSnapshot
     };
   }
 
@@ -321,7 +339,8 @@ export class CombatSandboxDirector {
       bossActive: this.bossContract !== null,
       bossPhaseTitle: this.bossPhaseRule?.title ?? null
     });
-    this.musicLabel = this.musicDirector.snapshot().mixLabel;
+    this.musicSnapshot = this.musicDirector.snapshot();
+    this.musicLabel = this.musicSnapshot.mixLabel;
   }
 
   private initializeFromSnapshot(snapshot: ContinueSnapshot | null): void {

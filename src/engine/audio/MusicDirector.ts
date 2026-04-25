@@ -4,9 +4,18 @@ interface BiomeMusicProfile {
   readonly bossMotif: string;
 }
 
+export interface MusicStemLevels {
+  readonly exploration: number;
+  readonly threat: number;
+  readonly combat: number;
+  readonly clutch: number;
+  readonly boss: number;
+}
+
 export interface MusicMixSnapshot {
   readonly biomeId: string;
   readonly motif: string;
+  readonly stems: MusicStemLevels;
   readonly mixLabel: string;
 }
 
@@ -116,6 +125,7 @@ export class MusicDirector {
     return {
       biomeId: this.biomeId,
       motif,
+      stems: { ...this.mix },
       mixLabel: `Music Mix E${this.toPercent(this.mix.exploration)} T${this.toPercent(this.mix.threat)} C${this.toPercent(this.mix.combat)} K${this.toPercent(this.mix.clutch)} B${this.toPercent(this.mix.boss)} · ${motif}`
     };
   }
