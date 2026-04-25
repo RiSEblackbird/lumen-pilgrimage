@@ -116,6 +116,7 @@ function run() {
   const missionDefs = readRepoFile('src/game/encounters/MissionTypes.ts');
   const bossContracts = readRepoFile('src/game/encounters/BossContracts.ts');
   const campaignBiomes = readRepoFile('src/game/state/CampaignBiomes.ts');
+  const enemyCatalog = readRepoFile('src/content/enemies/EnemyCatalog.ts');
 
   assertMinimumCount({
     name: 'weapons',
@@ -150,6 +151,27 @@ function run() {
   assertMinimumCount({
     name: 'campaign biomes',
     actual: countEntriesByKey(extractConstArrayBody(campaignBiomes, 'CAMPAIGN_BIOME_ORDER'), 'id'),
+    expected: 6
+  });
+
+  assertMinimumCount({
+    name: 'regular enemies',
+    actual: countEntriesByKey(extractConstArrayBody(enemyCatalog, 'REGULAR_ENEMIES'), 'id'),
+    expected: 12
+  });
+  assertMinimumCount({
+    name: 'elite enemies',
+    actual: countEntriesByKey(extractConstArrayBody(enemyCatalog, 'ELITE_ENEMIES'), 'id'),
+    expected: 6
+  });
+  assertMinimumCount({
+    name: 'mini bosses',
+    actual: countEntriesByKey(extractConstArrayBody(enemyCatalog, 'MINI_BOSSES'), 'id'),
+    expected: 5
+  });
+  assertMinimumCount({
+    name: 'boss enemies',
+    actual: countEntriesByKey(extractConstArrayBody(enemyCatalog, 'BOSS_ENEMIES'), 'id'),
     expected: 6
   });
 
