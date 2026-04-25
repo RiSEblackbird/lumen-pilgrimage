@@ -150,7 +150,8 @@ export class Game {
           bossLabel: 'No Warden contact',
           bossHealthLabel: 'Boss HP: -',
           arenaMutationLabel: 'Arena stable',
-          loadoutPoolLabel: this.metaState.toLoadoutPoolLabel()
+          loadoutPoolLabel: this.metaState.toLoadoutPoolLabel(),
+          ashSightLabel: 'Ash Sight READY (Cost 20 Focus, CD 12s)'
         });
         this.menu.setState(this.states.current);
         return;

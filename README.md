@@ -64,6 +64,7 @@ npm run check
   - `ArenaMutationDirector` により arena mutation を biome 固有 device（例: Censer Vents, Mirror Gates, Overcharge Rails）へ投影し、phase 進行で強度を更新
   - boss 戦中に arena device pulse callout を objective へ注入し、phase 情報の読解レイヤーを追加
   - HUD に boss HP readout と boss 専用 telegraph を表示
+  - `Ash Sight`（Focus 消費 + cooldown）を tactical reveal として追加し、telegraph/route 読解を補助
 
 ## サンドボックス操作（flat-screen）
 
@@ -72,6 +73,7 @@ npm run check
 - `F`: parry
 - `Q`: offhand module
 - `Shift`: dash
+- `R`: Ash Sight（Focus を使って短時間の tactical reveal）
 - `A` / `D`: reward 選択時の左右移動
 - `E`: reward 決定（通常時は loadout rotate）
 - MainMenu の `Mode Select` ボタン: run mode 選択

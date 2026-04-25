@@ -87,12 +87,16 @@ export interface CombatSandboxSnapshot {
   readonly bossHealthLabel: string;
   readonly arenaMutationLabel: string;
   readonly loadoutPoolLabel: string;
+  readonly ashSightLabel: string;
 }
 
 const MAX_HEALTH = 100;
 const MAX_GUARD = 100;
 const MAX_FOCUS = 100;
 const MAX_OVERBURN = 100;
+const ASH_SIGHT_FOCUS_COST = 20;
+const ASH_SIGHT_COOLDOWN_SECONDS = 12;
+const ASH_SIGHT_REVEAL_SECONDS = 4;
 
 export class CombatSandboxDirector {
   private readonly enemies: SandboxEnemy[] = [];
@@ -135,6 +139,8 @@ export class CombatSandboxDirector {
   private arenaMutationLabel = 'Arena stable';
   private hazardTickAccumulator = 0;
   private loadoutPoolLabel = 'Loadout Pool W 1/4 | O 1/4 | S 1/12';
+  private ashSightCooldown = 0;
+  private ashSightRevealTimer = 0;
   private expeditionPlan: ExpeditionPlan = {
     runMode: 'campaign',
     biomeId: 'ember-ossuary',
@@ -151,6 +157,7 @@ export class CombatSandboxDirector {
       moveLeft: false,
       moveRight: false,
       dash: false,
+      ashSight: false,
       primaryAttack: false,
       guard: false,
       parry: false,
@@ -224,6 +231,8 @@ export class CombatSandboxDirector {
     this.bossActor.stop();
     this.arenaMutation.stop();
     this.hazardTickAccumulator = 0;
+    this.ashSightCooldown = 0;
+    this.ashSightRevealTimer = 0;
     this.rewards.setEquippedRelics([]);
     this.previousActions = {
       moveForward: false,
@@ -231,6 +240,7 @@ export class CombatSandboxDirector {
       moveLeft: false,
       moveRight: false,
       dash: false,
+      ashSight: false,
       primaryAttack: false,
       guard: false,
       parry: false,
@@ -277,7 +287,8 @@ export class CombatSandboxDirector {
       bossLabel: this.bossLabel,
       bossHealthLabel: this.bossHealthLabel,
       arenaMutationLabel: this.arenaMutationLabel,
-      loadoutPoolLabel: this.loadoutPoolLabel
+      loadoutPoolLabel: this.loadoutPoolLabel,
+      ashSightLabel: this.getAshSightLabel()
     };
   }
 
@@ -328,6 +339,8 @@ export class CombatSandboxDirector {
     const modifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
     this.parryDamageBoostTimer = Math.max(0, this.parryDamageBoostTimer - deltaSeconds);
     this.offhandGuardBoostTimer = Math.max(0, this.offhandGuardBoostTimer - deltaSeconds);
+    this.ashSightCooldown = Math.max(0, this.ashSightCooldown - deltaSeconds);
+    this.ashSightRevealTimer = Math.max(0, this.ashSightRevealTimer - deltaSeconds);
     this.focus = Math.min(MAX_FOCUS, this.focus + deltaSeconds * (4 + modifiers.focusRegenPerSecondBonus));
     this.guard = Math.min(MAX_GUARD, this.guard + deltaSeconds * 3);
     this.overburn = Math.max(0, this.overburn - deltaSeconds * 6 * modifiers.overburnDecayMultiplier);
@@ -369,6 +382,10 @@ export class CombatSandboxDirector {
 
     if (this.isRisingEdge(actions.primaryAttack, this.previousActions.primaryAttack)) {
       this.primaryAttack();
+    }
+
+    if (this.isRisingEdge(actions.ashSight, this.previousActions.ashSight)) {
+      this.activateAshSight();
     }
 
     if (this.isRisingEdge(actions.offhand, this.previousActions.offhand)) {
@@ -533,14 +550,22 @@ export class CombatSandboxDirector {
         const relicModifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
         const offhandWindowMultiplier = this.offhandGuardBoostTimer > 0 ? 0.82 : 1;
         const guardDamageMultiplier = this.bossPhaseRule?.guardDamageMultiplier ?? 1;
+        const ashSightGuardMultiplier = this.ashSightRevealTimer > 0 ? 0.88 : 1;
         this.guard = Math.max(
           0,
-          this.guard - enemy.damage * 0.65 * relicModifiers.guardDamageTakenMultiplier * offhandWindowMultiplier * guardDamageMultiplier
+          this.guard
+            - enemy.damage
+              * 0.65
+              * relicModifiers.guardDamageTakenMultiplier
+              * offhandWindowMultiplier
+              * guardDamageMultiplier
+              * ashSightGuardMultiplier
         );
         this.overburn = Math.min(MAX_OVERBURN, this.overburn + 5);
       } else {
         const incomingDamageMultiplier = this.bossPhaseRule?.incomingDamageMultiplier ?? 1;
-        const adjustedDamage = enemy.damage * incomingDamageMultiplier;
+        const ashSightDamageMultiplier = this.ashSightRevealTimer > 0 ? 0.9 : 1;
+        const adjustedDamage = enemy.damage * incomingDamageMultiplier * ashSightDamageMultiplier;
         this.health = Math.max(0, this.health - adjustedDamage);
         this.roomDamageTaken += adjustedDamage;
       }
@@ -789,15 +814,21 @@ export class CombatSandboxDirector {
   private getTelegraphLabel(): string {
     const bossSnapshot = this.bossActor.snapshot();
     if (bossSnapshot.active && bossSnapshot.telegraphLabel !== 'No immediate telegraph') {
-      return `Boss: ${bossSnapshot.telegraphLabel}`;
+      return this.ashSightRevealTimer > 0
+        ? `Ash Sight: Boss weakpoint window -> ${bossSnapshot.telegraphLabel}`
+        : `Boss: ${bossSnapshot.telegraphLabel}`;
     }
 
     const telegraphedEnemy = this.enemies.find((enemy) => enemy.attackTimer > 0 && enemy.attackTimer <= enemy.telegraphLead);
     if (!telegraphedEnemy) {
-      return 'No immediate telegraph';
+      return this.ashSightRevealTimer > 0
+        ? 'Ash Sight active: no strike telegraph, scan hidden route markers.'
+        : 'No immediate telegraph';
     }
 
-    return `${telegraphedEnemy.label} attack incoming`;
+    return this.ashSightRevealTimer > 0
+      ? `${telegraphedEnemy.label} attack incoming (Ash Sight timing assist)`
+      : `${telegraphedEnemy.label} attack incoming`;
   }
 
 
@@ -832,6 +863,30 @@ export class CombatSandboxDirector {
   private getDashFocusCost(): number {
     const modifiers = buildRelicStatModifiers(this.rewards.getEquippedRelics());
     return Math.max(6, Math.round(15 * modifiers.dashFocusCostMultiplier));
+  }
+
+  private activateAshSight(): void {
+    if (this.ashSightCooldown > 0) {
+      this.objective = `Ash Sight cooling down (${this.ashSightCooldown.toFixed(1)}s).`;
+      return;
+    }
+
+    if (this.focus < ASH_SIGHT_FOCUS_COST) {
+      this.objective = 'Insufficient Focus for Ash Sight reveal.';
+      return;
+    }
+
+    this.focus = Math.max(0, this.focus - ASH_SIGHT_FOCUS_COST);
+    this.ashSightCooldown = ASH_SIGHT_COOLDOWN_SECONDS;
+    this.ashSightRevealTimer = ASH_SIGHT_REVEAL_SECONDS;
+    this.objective = 'Ash Sight engaged: weakpoints, breakables, and hidden routing echoes revealed.';
+  }
+
+  private getAshSightLabel(): string {
+    if (this.ashSightRevealTimer > 0) {
+      return `Ash Sight ACTIVE ${this.ashSightRevealTimer.toFixed(1)}s | CD ${this.ashSightCooldown.toFixed(1)}s`;
+    }
+    return `Ash Sight READY (Cost ${ASH_SIGHT_FOCUS_COST} Focus, CD ${ASH_SIGHT_COOLDOWN_SECONDS}s)`;
   }
 
   private isRisingEdge(current: boolean, previous: boolean): boolean {
