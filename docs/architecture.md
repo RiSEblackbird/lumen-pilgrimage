@@ -94,3 +94,11 @@
 ランタイムは `src/main.ts` → `AppBootstrap` → `Game` の単一経路のみを保持し、ritual/glyph 依存をコードベース上から排除した。
 
 - `DifficultyState` は Pilgrim/Trial/Martyr を定義し、CombatSandboxDirector の enemy health/damage/attack interval/telegraph 補正に適用する。
+
+## World Assembler (Phase 6 foundation)
+
+`src/world/WorldAssembler.ts` が scene の背景色・fog・key/fill light を管理し、`src/content/biomes/BiomeMoodDefs.ts` のデータ定義から hub + 5 biomes + final zone の mood を切り替える。
+
+- hub (`pilgrims-belfry`) と expedition biome で `Game` から `enterHub` / `enterExpedition` を呼び分ける。
+- `ArenaDeviceVisualHooks` の channel 圧（hazard/focus/guard/overburn）を `applyArenaVisualHooks` で light intensity へ合成し、boss phase 圧の world 側フィードバック基盤を提供する。
+- 未知 biome は `resolveBiomeMood` の fallback で hub mood へ退避し、セーブ互換性を壊さない。

@@ -20,6 +20,7 @@ import { VrWristUi } from '../game/ui/VrWristUi';
 import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
 import type { ExpeditionPlan } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
+import { WorldAssembler } from '../world/WorldAssembler';
 import { MISSION_TYPE_DEFS } from '../game/encounters/MissionTypes';
 import { SessionBootstrap } from '../bootstrap/SessionBootstrap';
 import { DEFAULT_RUN_MODE, type RunMode } from '../game/state/RunMode';
@@ -53,6 +54,7 @@ export class Game {
   private readonly hud: HudManager;
   private readonly vrUi = new VrWristUi();
   private readonly hubScene: PilgrimsBelfryScene;
+  private readonly worldAssembler: WorldAssembler;
   private readonly combatSandbox: CombatSandboxDirector;
   private settingsViewModel: SettingsViewModel;
 
@@ -89,6 +91,7 @@ export class Game {
     this.menu = new MenuManager(container);
     this.hud = new HudManager(container);
     this.hubScene = new PilgrimsBelfryScene(this.scene);
+    this.worldAssembler = new WorldAssembler(this.scene);
 
     this.settingsViewModel = this.settings.load();
     this.settings.save(this.settingsViewModel);
@@ -139,6 +142,7 @@ export class Game {
     this.loop.tick((delta, elapsed) => {
       this.hubScene.tick(elapsed);
       this.audioDirector.tick(delta);
+      this.worldAssembler.tick(delta);
       const sessionLifecycle = this.sessionBootstrap.tick();
       this.xrInput.applySessionStatus({
         active: sessionLifecycle.state !== 'idle',
@@ -153,6 +157,8 @@ export class Game {
       this.handleMenuCommands();
 
       if (!this.runActive) {
+        this.worldAssembler.enterHub();
+        this.worldAssembler.applyArenaVisualHooks(IDLE_ARENA_VISUAL_HOOKS);
         this.hubScene.setArenaVisualHooks(IDLE_ARENA_VISUAL_HOOKS);
         this.syncHubWorldWidgets();
         this.syncHubWristUi();
@@ -191,6 +197,8 @@ export class Game {
       }
 
       const sandbox = this.combatSandbox.update(desktopActions, delta);
+      this.worldAssembler.enterExpedition(sandbox.arenaVisualHooks.biomeId);
+      this.worldAssembler.applyArenaVisualHooks(sandbox.arenaVisualHooks);
       this.hubScene.setArenaVisualHooks(sandbox.arenaVisualHooks);
       this.audioDirector.applyMusicMix(sandbox.musicMix);
       this.vrUi.setStatus(`In Expedition · ${this.xrInput.getSessionStatusLabel()}`);
