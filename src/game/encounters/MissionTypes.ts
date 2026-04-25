@@ -64,5 +64,33 @@ export const MISSION_TYPE_DEFS: readonly MissionTypeDef[] = [
     summary: 'Recover vulnerable echo targets while intercepting elite hunters.',
     targetObjective: 'Rescue echoes and escort them to a safe ward circle.',
     routeBias: ['recovery', 'standard', 'secret', 'risk']
+  },
+  {
+    id: 'veil-infiltration',
+    displayName: 'Veil Infiltration',
+    summary: 'Move through stealth-lite sightlines, collapsing sentry anchors before alarms peak.',
+    targetObjective: 'Disrupt anchor sentries and open a silent breach route.',
+    routeBias: ['secret', 'risk', 'standard', 'recovery']
+  },
+  {
+    id: 'litany-conflux',
+    displayName: 'Litany Conflux',
+    summary: 'Solve puzzle-combat glyph relays while elite waves mutate the arena cadence.',
+    targetObjective: 'Stabilize relay harmonics and survive conflux counterattacks.',
+    routeBias: ['standard', 'secret', 'risk', 'recovery']
+  },
+  {
+    id: 'warden-remix',
+    displayName: 'Warden Remix',
+    summary: 'Hunt a remixed Warden contract with altered telegraphs and arena mutation cycles.',
+    targetObjective: 'Defeat the remixed Warden profile and extract contract fragments.',
+    routeBias: ['risk', 'standard', 'secret', 'recovery']
+  },
+  {
+    id: 'collapse-protocol',
+    displayName: 'Collapse Protocol',
+    summary: 'Endure endless-collapse pressure where hazards escalate until forced extraction.',
+    targetObjective: 'Survive collapse pulses and bank rewards before total lockout.',
+    routeBias: ['risk', 'recovery', 'standard', 'secret']
   }
 ] as const;

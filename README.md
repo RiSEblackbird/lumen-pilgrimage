@@ -76,7 +76,7 @@ npm run preview
   - guard / parry 分離
   - telegraph 読み合い + stagger リワード
   - enemy coordinator（melee token / ranged budget）
-  - mission 8系統ローテーション表示（Purge Nest 〜 Echo Rescue） + contract route bias 適用
+  - mission 12系統ローテーション表示（Purge Nest / Echo Rescue に加えて Veil Infiltration / Litany Conflux / Warden Remix / Collapse Protocol を含む） + contract route bias 適用
   - EncounterDirector による biome/sector/room graph 進行表示（Ember Ossuary / Moon Reservoir）
   - room tag 連動の wave spawn table（arena / traversal / elite / reward / secret / boss-approach）
   - biome ごと 10 room の modular encounter graph（10〜14 room quota 対応）
