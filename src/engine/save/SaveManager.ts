@@ -4,6 +4,7 @@ import type { RelicStatModifiers } from '../../game/items/RelicEffects';
 import { normalizeUnlockedBiomes } from '../../game/state/CampaignBiomes';
 
 export interface ExpeditionProgress {
+  readonly runSeed: number;
   readonly biomeId: string;
   readonly missionId: string;
   readonly sectorIndex: number;
@@ -206,7 +207,14 @@ export class SaveManager {
       return null;
     }
 
-    const numberKeys: Array<keyof ExpeditionProgress> = ['sectorIndex', 'sectorsTotal', 'health', 'guard', 'focus', 'overburn'];
+    const numberKeys: Array<keyof ExpeditionProgress> = [
+      'sectorIndex',
+      'sectorsTotal',
+      'health',
+      'guard',
+      'focus',
+      'overburn'
+    ];
     const stringKeys: Array<keyof ExpeditionProgress> = [
       'biomeId',
       'missionId',
@@ -232,6 +240,7 @@ export class SaveManager {
     }
 
     return {
+      runSeed: typeof input.runSeed === 'number' && Number.isFinite(input.runSeed) ? (input.runSeed >>> 0 || 1) : 1,
       biomeId: input.biomeId as string,
       missionId: typeof input.missionId === 'string' ? input.missionId : '',
       roomId: typeof input.roomId === 'string' ? input.roomId : '',

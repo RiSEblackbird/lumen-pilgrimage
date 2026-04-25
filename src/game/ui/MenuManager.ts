@@ -9,6 +9,7 @@ import { RUN_MODE_DEFS, type RunMode } from '../state/RunMode';
 import { resolveDifficulty, type DifficultyId } from '../state/DifficultyState';
 
 export interface ContinueSnapshot {
+  readonly runSeed: number;
   readonly biomeId: string;
   readonly missionId: string;
   readonly sectorIndex: number;
@@ -260,6 +261,7 @@ export class MenuManager {
     this.root.innerHTML = [
       `State: ${this.state}`,
       `Continue: ${campaignBiomeLabel(snapshot.biomeId)} / Sector ${snapshot.sectorIndex}/${snapshot.sectorsTotal}`,
+      `Run Seed: ${snapshot.runSeed}`,
       `Room: ${snapshot.roomLabel} / Route ${snapshot.routeStyle}`,
       `RoomID: ${snapshot.roomId || 'legacy-save'}`,
       `Mission: ${snapshot.missionName} (${snapshot.missionId || 'legacy-save'})`,
