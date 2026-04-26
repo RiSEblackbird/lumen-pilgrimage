@@ -29,14 +29,15 @@
     "phase5-enemy-catalog-contract-wiring",
     "phase5-audio-stem-source-routing",
     "phase6-arena-visual-hooks",
-    "phase6-world-assembler-foundation"
+    "phase6-world-assembler-foundation",
+    "phase6-biome-transition-spectacle"
   ],
   "in_progress": [
     "phase5-campaign-content-scaleout",
     "phase6-arena-device-runtime"
   ],
   "next_actions": [
-    "bind authored biome geometry/VFX assets into WorldAssembler transitions (light sweep, altar flare, caustic proxies)",
+    "bind authored biome geometry/VFX assets into WorldAssembler transition channels for per-room setpieces",
     "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions"
   ],
   "smoke_commands": [
