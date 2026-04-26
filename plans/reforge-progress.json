@@ -1,6 +1,6 @@
 {
   "task": "lumen-pilgrimage-reforge",
-  "updated_at": "2026-04-25",
+  "updated_at": "2026-04-26",
   "current_phase": "Phase 5 (in progress)",
   "completed": [
     "phase1-foundation",
@@ -30,15 +30,17 @@
     "phase5-audio-stem-source-routing",
     "phase6-arena-visual-hooks",
     "phase6-world-assembler-foundation",
-    "phase6-biome-transition-spectacle"
+    "phase6-biome-transition-spectacle",
+    "phase6-arena-device-runtime",
+    "phase6-boss-arena-device-presets"
   ],
   "in_progress": [
     "phase5-campaign-content-scaleout",
-    "phase6-arena-device-runtime"
+    "phase6-authored-setpiece-integration"
   ],
   "next_actions": [
-    "bind authored biome geometry/VFX assets into WorldAssembler transition channels for per-room setpieces",
-    "author boss-specific arena devices that consume arenaMutationSummary data for geometry/VFX transitions"
+    "bind authored room geometry/hazard meshes to arena preset targets so each boss phase mutates traversal lanes",
+    "connect ParticleDirector hooks to arena channel weights (hazard/focus/guard/overburn) for non-postprocess XR-safe spectacle"
   ],
   "smoke_commands": [
     "npm run typecheck",
