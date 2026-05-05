@@ -21,6 +21,7 @@ import { CombatSandboxDirector } from '../game/sandbox/CombatSandboxDirector';
 import type { ExpeditionPlan } from '../game/sandbox/CombatSandboxDirector';
 import { PilgrimsBelfryScene } from '../world/hub/PilgrimsBelfryScene';
 import { WorldAssembler } from '../world/WorldAssembler';
+import { ParticleDirector } from '../engine/render/ParticleDirector';
 import { MISSION_TYPE_DEFS } from '../game/encounters/MissionTypes';
 import { SessionBootstrap } from '../bootstrap/SessionBootstrap';
 import { DEFAULT_RUN_MODE, type RunMode } from '../game/state/RunMode';
@@ -55,6 +56,7 @@ export class Game {
   private readonly vrUi = new VrWristUi();
   private readonly hubScene: PilgrimsBelfryScene;
   private readonly worldAssembler: WorldAssembler;
+  private readonly particleDirector: ParticleDirector;
   private readonly combatSandbox: CombatSandboxDirector;
   private settingsViewModel: SettingsViewModel;
 
@@ -92,6 +94,7 @@ export class Game {
     this.hud = new HudManager(container);
     this.hubScene = new PilgrimsBelfryScene(this.scene);
     this.worldAssembler = new WorldAssembler(this.scene);
+    this.particleDirector = new ParticleDirector(this.scene);
 
     this.settingsViewModel = this.settings.load();
     this.settings.save(this.settingsViewModel);
@@ -143,6 +146,7 @@ export class Game {
       this.hubScene.tick(elapsed);
       this.audioDirector.tick(delta);
       this.worldAssembler.tick(delta);
+      this.particleDirector.tick(elapsed, delta, this.settingsViewModel.reduceFlashing);
       const sessionLifecycle = this.sessionBootstrap.tick();
       this.xrInput.applySessionStatus({
         active: sessionLifecycle.state !== 'idle',
@@ -160,6 +164,7 @@ export class Game {
         this.worldAssembler.enterHub();
         this.worldAssembler.applyArenaVisualHooks(IDLE_ARENA_VISUAL_HOOKS);
         this.hubScene.setArenaVisualHooks(IDLE_ARENA_VISUAL_HOOKS);
+        this.particleDirector.applyArenaVisualHooks(IDLE_ARENA_VISUAL_HOOKS);
         this.syncHubWorldWidgets();
         this.syncHubWristUi();
         this.vrUi.setStatus(this.xrInput.getSessionStatusLabel());
@@ -190,6 +195,7 @@ export class Game {
           loadoutPoolLabel: this.metaState.toLoadoutPoolLabel(),
           ashSightLabel: 'Ash Sight READY (Cost 20 Focus, CD 12s)',
           musicLabel: 'Music Mix E100 T0 C0 K0 B0 · hub sanctuary ambience',
+          particleLabel: this.particleDirector.getStatusLabel(),
           runSummaryLabel: 'Run 0:00 · K 0 · DMG 0/0 · Parry 0 · Dash 0 · AshSight 0 · Relic 0 · Intensity LOW'
         });
         this.menu.setState(this.states.current);
@@ -200,6 +206,7 @@ export class Game {
       this.worldAssembler.enterExpedition(sandbox.arenaVisualHooks.biomeId);
       this.worldAssembler.applyArenaVisualHooks(sandbox.arenaVisualHooks);
       this.hubScene.setArenaVisualHooks(sandbox.arenaVisualHooks);
+      this.particleDirector.applyArenaVisualHooks(sandbox.arenaVisualHooks);
       this.audioDirector.applyMusicMix(sandbox.musicMix);
       this.vrUi.setStatus(`In Expedition · ${this.xrInput.getSessionStatusLabel()}`);
       const objective = this.xrInput.isPresenting()
@@ -208,6 +215,7 @@ export class Game {
 
       this.hud.render({
         ...sandbox,
+        particleLabel: this.particleDirector.getStatusLabel(),
         objective
       });
       this.menu.setState(this.states.current);
