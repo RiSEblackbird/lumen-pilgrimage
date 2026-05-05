@@ -32,7 +32,8 @@
     "phase6-world-assembler-foundation",
     "phase6-biome-transition-spectacle",
     "phase6-arena-device-runtime",
-    "phase6-boss-arena-device-presets"
+    "phase6-boss-arena-device-presets",
+    "phase6-particle-director-hooks"
   ],
   "in_progress": [
     "phase5-campaign-content-scaleout",
@@ -40,7 +41,7 @@
   ],
   "next_actions": [
     "bind authored room geometry/hazard meshes to arena preset targets so each boss phase mutates traversal lanes",
-    "connect ParticleDirector hooks to arena channel weights (hazard/focus/guard/overburn) for non-postprocess XR-safe spectacle"
+    "route particle emitters into biome-authored setpiece anchors instead of default hub-relative ring offsets"
   ],
   "smoke_commands": [
     "npm run typecheck",

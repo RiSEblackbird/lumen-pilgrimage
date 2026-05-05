@@ -6,6 +6,7 @@
 - `core/`: Game 本体、レンダーループ、構成。
 - `engine/input`: Desktop/XR の入力抽象。
 - `engine/audio`: biome / phase / pressure 連動の音響ミックス制御。
+- `engine/render`: world 側の light / particle spectacle 制御（postprocess 非依存）。
 - `engine/save`: セーブデータ（expedition + meta progression）と設定保存。
 - `engine/debug`: Perf HUD。
 - `game/state`: game state machine。
@@ -33,6 +34,7 @@
   - `MenuManager`
   - `VrWristUi`
   - `CombatSandboxDirector`
+  - `ParticleDirector`
   - `PilgrimsBelfryScene`
 - `CombatSandboxDirector`
   - `EncounterDirector`
@@ -75,6 +77,8 @@
 - `CombatSandboxDirector` は `ArenaMutationDirector` を通じて boss phase の `arenaMutationSummary` を biome 固有 device 状態（強度％）へ変換し、HUD と objective へ反映する。
 - `CombatSandboxDirector` は `MusicDirector` へ enemy pressure / overburn / boss phase を入力し、exploration/threat/combat/clutch/boss stem ミックスを算出して HUD 表示へ反映する。
 - `CombatSandboxDirector` は loadout availability から pool 数（W/O/S の解放数/総数）を算出し、HUD へ表示する。
+
+- `ParticleDirector` は `ArenaDeviceVisualHooks` の channel 圧と biome preset weight を合成し、hazard/focus/guard/overburn それぞれの additive particle emitter を駆動する。XR path でも camera shake や composer を使わず world 側 pulse を提供する。
 - `XRActionAdapter` は接続済み controller（left/right）から pointer ray を生成し、`PilgrimsBelfryScene` は複数rayヒット時に最短距離を採用して Hub terminal selection を更新する（HMD前方固定rayは不使用）。
 - State 遷移は `GameStateMachine` の遷移表にない遷移を拒否。
 
