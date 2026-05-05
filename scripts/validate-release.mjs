@@ -63,6 +63,7 @@ function run() {
   const distRoot = ensureDirectoryExists('dist');
 
   const forbiddenLegacyIdentifiers = [
+    { name: 'legacy ritual noun token', regex: /\britual\b/i },
     { name: 'legacy ritual loop token', regex: /\bRitualState\b/ },
     { name: 'legacy glyph system token', regex: /\bGlyphSystem\b/ },
     { name: 'legacy export reward token', regex: /\bDreamExporter\b/ },
@@ -71,6 +72,7 @@ function run() {
   ];
 
   const forbiddenReleaseIdentifiers = [
+    { name: 'placeholder export token', regex: /\bjson\s*export\b/i },
     { name: 'debug HUD token', regex: /\bPerfHud\b/ },
     { name: 'debug overlay token', regex: /\bDevOverlay\b/ },
     { name: 'spawn cheat token', regex: /\bSpawnCheats\b/ },
@@ -99,7 +101,7 @@ function run() {
   if (distViolations.length > 0) {
     throw new Error(`[release guard] Forbidden debug/legacy tokens found in dist/:\n${distViolations.join('\n')}`);
   }
-  console.log('✓ release guard: dist/ does not include debug helpers or legacy loop tokens');
+  console.log('✓ release guard: dist/ does not include debug helpers, placeholder export copy, or legacy loop tokens');
 }
 
 try {
