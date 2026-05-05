@@ -24,6 +24,9 @@ export class WorldAssembler {
   private fogBias = 0;
   private targetSweep = { x: 4, y: 1, z: 3 };
   private targetCaustic = { x: -2, y: 0, z: 2 };
+  private targetSweepOrigin = { x: -6, y: 7, z: -2.5 };
+  private targetCausticOrigin = { x: 3.5, y: 6.5, z: -4 };
+  private targetFlareOrigin = { x: 0, y: 1.2, z: 0 };
 
   constructor(private readonly scene: Scene) {
     this.keyLight = new DirectionalLight(this.activeMood.keyLightHex, this.activeMood.keyLightIntensity);
@@ -82,6 +85,27 @@ export class WorldAssembler {
       y: this.lerp(0, causticY, deviceIntensity),
       z: this.lerp(2, causticZ, deviceIntensity)
     };
+
+    const [sweepOriginX, sweepOriginY, sweepOriginZ] = this.activeVisualPreset.setpieceAnchors.sweepOrigin;
+    this.targetSweepOrigin = {
+      x: this.lerp(-6, sweepOriginX, deviceIntensity),
+      y: this.lerp(7, sweepOriginY, deviceIntensity),
+      z: this.lerp(-2.5, sweepOriginZ, deviceIntensity)
+    };
+
+    const [causticOriginX, causticOriginY, causticOriginZ] = this.activeVisualPreset.setpieceAnchors.causticOrigin;
+    this.targetCausticOrigin = {
+      x: this.lerp(3.5, causticOriginX, deviceIntensity),
+      y: this.lerp(6.5, causticOriginY, deviceIntensity),
+      z: this.lerp(-4, causticOriginZ, deviceIntensity)
+    };
+
+    const [flareOriginX, flareOriginY, flareOriginZ] = this.activeVisualPreset.setpieceAnchors.flareOrigin;
+    this.targetFlareOrigin = {
+      x: this.lerp(0, flareOriginX, deviceIntensity),
+      y: this.lerp(1.2, flareOriginY, deviceIntensity),
+      z: this.lerp(0, flareOriginZ, deviceIntensity)
+    };
   }
 
   tick(deltaSeconds: number): void {
@@ -92,10 +116,19 @@ export class WorldAssembler {
     this.sweepLight.target.position.x = this.lerp(this.sweepLight.target.position.x, this.targetSweep.x, smoothing);
     this.sweepLight.target.position.y = this.lerp(this.sweepLight.target.position.y, this.targetSweep.y, smoothing);
     this.sweepLight.target.position.z = this.lerp(this.sweepLight.target.position.z, this.targetSweep.z, smoothing);
+    this.sweepLight.position.x = this.lerp(this.sweepLight.position.x, this.targetSweepOrigin.x, smoothing);
+    this.sweepLight.position.y = this.lerp(this.sweepLight.position.y, this.targetSweepOrigin.y, smoothing);
+    this.sweepLight.position.z = this.lerp(this.sweepLight.position.z, this.targetSweepOrigin.z, smoothing);
 
     this.causticLight.target.position.x = this.lerp(this.causticLight.target.position.x, this.targetCaustic.x, smoothing);
     this.causticLight.target.position.y = this.lerp(this.causticLight.target.position.y, this.targetCaustic.y, smoothing);
     this.causticLight.target.position.z = this.lerp(this.causticLight.target.position.z, this.targetCaustic.z, smoothing);
+    this.causticLight.position.x = this.lerp(this.causticLight.position.x, this.targetCausticOrigin.x, smoothing);
+    this.causticLight.position.y = this.lerp(this.causticLight.position.y, this.targetCausticOrigin.y, smoothing);
+    this.causticLight.position.z = this.lerp(this.causticLight.position.z, this.targetCausticOrigin.z, smoothing);
+    this.flareLight.position.x = this.lerp(this.flareLight.position.x, this.targetFlareOrigin.x, smoothing);
+    this.flareLight.position.y = this.lerp(this.flareLight.position.y, this.targetFlareOrigin.y, smoothing);
+    this.flareLight.position.z = this.lerp(this.flareLight.position.z, this.targetFlareOrigin.z, smoothing);
 
     this.tickTransitionFx(deltaSeconds);
   }
